@@ -1,0 +1,63 @@
+/* 
+  Localizable.strings (Bulgarian)
+  zaruri
+  
+  Created by ax on 06.01.2026.
+*/
+
+/* Navigation */
+"Zaruri" = "Зар";
+"Setări" = "Настройки";
+"Istoric" = "История";
+"Statistici" = "Статистика";
+"Moduri de joc" = "Игрови режими";
+
+/* Dice */
+"dice.roll.button" = "Хвърли зар";
+"dice.total.label" = "Общо";
+"dice.single" = "зар";
+"dice.plural" = "зарове";
+
+/* Settings */
+"settings.dice.count.title" = "Брой зарове";
+"settings.feedback.title" = "Обратна връзка";
+"settings.sound" = "Звук";
+"settings.haptic" = "Вибриране";
+"settings.theme.title" = "Тема";
+"settings.history.title" = "История";
+"settings.keep.history" = "Запази история";
+"settings.max.history.items" = "Макс %d записа";
+"settings.data.title" = "Данни";
+"settings.clear.history" = "Изтрий история";
+"settings.reset.settings" = "Нулирай настройки";
+
+/* History */
+"history.empty.title" = "Няма история";
+"history.empty.message" = "Хвърли зар, за да започнеш";
+"history.clear" = "Изтрий";
+"history.search" = "Търси в история";
+
+/* Statistics */
+"statistics.general.title" = "Обща статистика";
+"statistics.total.rolls" = "Общо хвърляния";
+"statistics.average" = "Средно";
+"statistics.min" = "Мин";
+"statistics.max" = "Макс";
+"statistics.distribution.title" = "Разпределение на стойности";
+"statistics.reset" = "Нулирай";
+
+/* Game Modes */
+"game.mode.title" = "Игров режим";
+"game.mode.free" = "Свободно хвърляне";
+"game.mode.yahtzee" = "Яхтце помощник";
+"game.mode.sum" = "Игра на сума";
+"game.mode.highest" = "Най-висока стойност";
+
+/* Themes */
+"theme.standard" = "Стандартна";
+"theme.dark" = "Тъмна";
+"theme.colorful" = "Цветна";
+"theme.classic" = "Класическа";
+
+
+

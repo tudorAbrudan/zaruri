@@ -1,0 +1,63 @@
+/* 
+  Localizable.strings (Macedonian)
+  zaruri
+  
+  Created by ax on 06.01.2026.
+*/
+
+/* Navigation */
+"Zaruri" = "Коцка";
+"Setări" = "Поставки";
+"Istoric" = "Историја";
+"Statistici" = "Статистика";
+"Moduri de joc" = "Игрови режими";
+
+/* Dice */
+"dice.roll.button" = "Фрли коцка";
+"dice.total.label" = "Вкупно";
+"dice.single" = "коцка";
+"dice.plural" = "коцки";
+
+/* Settings */
+"settings.dice.count.title" = "Број коцки";
+"settings.feedback.title" = "Повратна информација";
+"settings.sound" = "Звук";
+"settings.haptic" = "Вибрација";
+"settings.theme.title" = "Тема";
+"settings.history.title" = "Историја";
+"settings.keep.history" = "Зачувај историја";
+"settings.max.history.items" = "Макс %d записи";
+"settings.data.title" = "Податоци";
+"settings.clear.history" = "Избриши историја";
+"settings.reset.settings" = "Ресетирај поставки";
+
+/* History */
+"history.empty.title" = "Нема историја";
+"history.empty.message" = "Фрли коцка за да започнеш";
+"history.clear" = "Избриши";
+"history.search" = "Пребарај историја";
+
+/* Statistics */
+"statistics.general.title" = "Општа статистика";
+"statistics.total.rolls" = "Вкупно фрлања";
+"statistics.average" = "Просек";
+"statistics.min" = "Мин";
+"statistics.max" = "Макс";
+"statistics.distribution.title" = "Распределба на вредности";
+"statistics.reset" = "Ресетирај";
+
+/* Game Modes */
+"game.mode.title" = "Игра режим";
+"game.mode.free" = "Слободно фрлање";
+"game.mode.yahtzee" = "Јахтце помошник";
+"game.mode.sum" = "Игра на сума";
+"game.mode.highest" = "Најголема вредност";
+
+/* Themes */
+"theme.standard" = "Стандардна";
+"theme.dark" = "Темна";
+"theme.colorful" = "Шарена";
+"theme.classic" = "Класична";
+
+
+

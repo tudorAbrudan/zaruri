@@ -1,0 +1,63 @@
+/* 
+  Localizable.strings (Albanian)
+  zaruri
+  
+  Created by ax on 06.01.2026.
+*/
+
+/* Navigation */
+"Zaruri" = "Zar";
+"Setări" = "Cilësimet";
+"Istoric" = "Historiku";
+"Statistici" = "Statistikat";
+"Moduri de joc" = "Mënyrat e lojës";
+
+/* Dice */
+"dice.roll.button" = "Hedh zarin";
+"dice.total.label" = "Total";
+"dice.single" = "zar";
+"dice.plural" = "zare";
+
+/* Settings */
+"settings.dice.count.title" = "Numri i zareve";
+"settings.feedback.title" = "Feedback";
+"settings.sound" = "Zëri";
+"settings.haptic" = "Vibrim";
+"settings.theme.title" = "Tema";
+"settings.history.title" = "Historiku";
+"settings.keep.history" = "Ruaj historikun";
+"settings.max.history.items" = "Maks %d regjistrime";
+"settings.data.title" = "Të dhënat";
+"settings.clear.history" = "Pastro historikun";
+"settings.reset.settings" = "Rivendos cilësimet";
+
+/* History */
+"history.empty.title" = "Nuk ka historik";
+"history.empty.message" = "Hedh zarin për të filluar";
+"history.clear" = "Pastro";
+"history.search" = "Kërko në historik";
+
+/* Statistics */
+"statistics.general.title" = "Statistika të përgjithshme";
+"statistics.total.rolls" = "Total hedhje";
+"statistics.average" = "Mesatarja";
+"statistics.min" = "Min";
+"statistics.max" = "Maks";
+"statistics.distribution.title" = "Shpërndarja e vlerave";
+"statistics.reset" = "Rivendos";
+
+/* Game Modes */
+"game.mode.title" = "Mënyra e lojës";
+"game.mode.free" = "Hedhje e lirë";
+"game.mode.yahtzee" = "Ndihmës Yahtzee";
+"game.mode.sum" = "Lojë shume";
+"game.mode.highest" = "Vlera më e lartë";
+
+/* Themes */
+"theme.standard" = "Standard";
+"theme.dark" = "E errët";
+"theme.colorful" = "Me ngjyra";
+"theme.classic" = "Klasike";
+
+
+

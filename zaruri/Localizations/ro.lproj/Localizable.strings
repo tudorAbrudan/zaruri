@@ -1,0 +1,63 @@
+/* 
+  Localizable.strings (Romanian)
+  zaruri
+  
+  Created by ax on 06.01.2026.
+*/
+
+/* Navigation */
+"Zaruri" = "Zaruri";
+"Setări" = "Setări";
+"Istoric" = "Istoric";
+"Statistici" = "Statistici";
+"Moduri de joc" = "Moduri de joc";
+
+/* Dice */
+"dice.roll.button" = "Aruncă zarurile";
+"dice.total.label" = "Total";
+"dice.single" = "zar";
+"dice.plural" = "zaruri";
+
+/* Settings */
+"settings.dice.count.title" = "Număr zaruri";
+"settings.feedback.title" = "Feedback";
+"settings.sound" = "Sunet";
+"settings.haptic" = "Vibrații";
+"settings.theme.title" = "Temă";
+"settings.history.title" = "Istoric";
+"settings.keep.history" = "Păstrează istoric";
+"settings.max.history.items" = "Maxim %d înregistrări";
+"settings.data.title" = "Date";
+"settings.clear.history" = "Șterge istoricul";
+"settings.reset.settings" = "Resetează setările";
+
+/* History */
+"history.empty.title" = "Nu există istoric";
+"history.empty.message" = "Aruncă zarurile pentru a începe";
+"history.clear" = "Șterge";
+"history.search" = "Caută în istoric";
+
+/* Statistics */
+"statistics.general.title" = "Statistici generale";
+"statistics.total.rolls" = "Total aruncări";
+"statistics.average" = "Medie";
+"statistics.min" = "Minim";
+"statistics.max" = "Maxim";
+"statistics.distribution.title" = "Distribuție valori";
+"statistics.reset" = "Resetează";
+
+/* Game Modes */
+"game.mode.title" = "Mod de joc";
+"game.mode.free" = "Aruncare liberă";
+"game.mode.yahtzee" = "Yahtzee Helper";
+"game.mode.sum" = "Sum Game";
+"game.mode.highest" = "Highest Value";
+
+/* Themes */
+"theme.standard" = "Standard";
+"theme.dark" = "Dark";
+"theme.colorful" = "Colorful";
+"theme.classic" = "Classic";
+
+
+

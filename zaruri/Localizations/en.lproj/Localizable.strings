@@ -1,0 +1,63 @@
+/* 
+  Localizable.strings (English)
+  zaruri
+  
+  Created by ax on 06.01.2026.
+*/
+
+/* Navigation */
+"Zaruri" = "Dice";
+"Setări" = "Settings";
+"Istoric" = "History";
+"Statistici" = "Statistics";
+"Moduri de joc" = "Game Modes";
+
+/* Dice */
+"dice.roll.button" = "Roll Dice";
+"dice.total.label" = "Total";
+"dice.single" = "die";
+"dice.plural" = "dice";
+
+/* Settings */
+"settings.dice.count.title" = "Number of Dice";
+"settings.feedback.title" = "Feedback";
+"settings.sound" = "Sound";
+"settings.haptic" = "Haptic";
+"settings.theme.title" = "Theme";
+"settings.history.title" = "History";
+"settings.keep.history" = "Keep History";
+"settings.max.history.items" = "Max %d items";
+"settings.data.title" = "Data";
+"settings.clear.history" = "Clear History";
+"settings.reset.settings" = "Reset Settings";
+
+/* History */
+"history.empty.title" = "No History";
+"history.empty.message" = "Roll dice to get started";
+"history.clear" = "Clear";
+"history.search" = "Search history";
+
+/* Statistics */
+"statistics.general.title" = "General Statistics";
+"statistics.total.rolls" = "Total Rolls";
+"statistics.average" = "Average";
+"statistics.min" = "Min";
+"statistics.max" = "Max";
+"statistics.distribution.title" = "Value Distribution";
+"statistics.reset" = "Reset";
+
+/* Game Modes */
+"game.mode.title" = "Game Mode";
+"game.mode.free" = "Free Roll";
+"game.mode.yahtzee" = "Yahtzee Helper";
+"game.mode.sum" = "Sum Game";
+"game.mode.highest" = "Highest Value";
+
+/* Themes */
+"theme.standard" = "Standard";
+"theme.dark" = "Dark";
+"theme.colorful" = "Colorful";
+"theme.classic" = "Classic";
+
+
+

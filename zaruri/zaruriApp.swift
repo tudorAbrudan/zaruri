@@ -7,7 +7,8 @@
 
 import SwiftUI
 
-@main
+// App structure for iOS 14+ (used by AppDelegate on iOS 14+)
+@available(iOS 14.0, *)
 struct zaruriApp: App {
     var body: some Scene {
         WindowGroup {

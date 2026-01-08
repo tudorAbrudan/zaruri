@@ -1,0 +1,63 @@
+/* 
+  Localizable.strings (Serbian)
+  zaruri
+  
+  Created by ax on 06.01.2026.
+*/
+
+/* Navigation */
+"Zaruri" = "Кок";
+"Setări" = "Подешавања";
+"Istoric" = "Историја";
+"Statistici" = "Статистика";
+"Moduri de joc" = "Игра режими";
+
+/* Dice */
+"dice.roll.button" = "Баци коцку";
+"dice.total.label" = "Укупно";
+"dice.single" = "коцка";
+"dice.plural" = "коцке";
+
+/* Settings */
+"settings.dice.count.title" = "Број коцки";
+"settings.feedback.title" = "Повратна информација";
+"settings.sound" = "Звук";
+"settings.haptic" = "Вибрација";
+"settings.theme.title" = "Тема";
+"settings.history.title" = "Историја";
+"settings.keep.history" = "Сачувај историју";
+"settings.max.history.items" = "Макс %d записа";
+"settings.data.title" = "Подаци";
+"settings.clear.history" = "Обриши историју";
+"settings.reset.settings" = "Ресетуј подешавања";
+
+/* History */
+"history.empty.title" = "Нема историје";
+"history.empty.message" = "Баци коцку да почнеш";
+"history.clear" = "Обриши";
+"history.search" = "Претражи историју";
+
+/* Statistics */
+"statistics.general.title" = "Општа статистика";
+"statistics.total.rolls" = "Укупно бацања";
+"statistics.average" = "Просек";
+"statistics.min" = "Мин";
+"statistics.max" = "Макс";
+"statistics.distribution.title" = "Расподела вредности";
+"statistics.reset" = "Ресетуј";
+
+/* Game Modes */
+"game.mode.title" = "Игра режим";
+"game.mode.free" = "Слободно бацање";
+"game.mode.yahtzee" = "Јахтце помоћник";
+"game.mode.sum" = "Игра суме";
+"game.mode.highest" = "Највећа вредност";
+
+/* Themes */
+"theme.standard" = "Стандардна";
+"theme.dark" = "Тамна";
+"theme.colorful" = "Шарена";
+"theme.classic" = "Класична";
+
+
+

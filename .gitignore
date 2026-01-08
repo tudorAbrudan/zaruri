@@ -1,0 +1,61 @@
+# Xcode
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+*.xcworkspace/*
+!*.xcworkspace/contents.xcworkspacedata
+xcuserdata/
+*.xcuserstate
+*.xcuserdatad/
+
+# Build
+build/
+DerivedData/
+
+# Swift Package Manager
+.swiftpm/
+.build/
+Packages/
+
+# CocoaPods
+Pods/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+
+# Code Injection
+iOSInjectionProject/
+
+# App Store Connect
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift
+*.swiftmodule
+*.swiftdoc
+
+# Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# macOS
+.DS_Store
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+
+

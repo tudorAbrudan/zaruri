@@ -1,0 +1,63 @@
+/* 
+  Localizable.strings (Croatian)
+  zaruri
+  
+  Created by ax on 06.01.2026.
+*/
+
+/* Navigation */
+"Zaruri" = "Kocka";
+"Setări" = "Postavke";
+"Istoric" = "Povijest";
+"Statistici" = "Statistika";
+"Moduri de joc" = "Načini igre";
+
+/* Dice */
+"dice.roll.button" = "Baci kocku";
+"dice.total.label" = "Ukupno";
+"dice.single" = "kocka";
+"dice.plural" = "kocke";
+
+/* Settings */
+"settings.dice.count.title" = "Broj kocki";
+"settings.feedback.title" = "Povratne informacije";
+"settings.sound" = "Zvuk";
+"settings.haptic" = "Vibracija";
+"settings.theme.title" = "Tema";
+"settings.history.title" = "Povijest";
+"settings.keep.history" = "Spremi povijest";
+"settings.max.history.items" = "Maks %d zapisa";
+"settings.data.title" = "Podaci";
+"settings.clear.history" = "Obriši povijest";
+"settings.reset.settings" = "Resetiraj postavke";
+
+/* History */
+"history.empty.title" = "Nema povijesti";
+"history.empty.message" = "Baci kocku da počneš";
+"history.clear" = "Obriši";
+"history.search" = "Pretraži povijest";
+
+/* Statistics */
+"statistics.general.title" = "Opća statistika";
+"statistics.total.rolls" = "Ukupno bacanja";
+"statistics.average" = "Prosjek";
+"statistics.min" = "Min";
+"statistics.max" = "Maks";
+"statistics.distribution.title" = "Raspodjela vrijednosti";
+"statistics.reset" = "Resetiraj";
+
+/* Game Modes */
+"game.mode.title" = "Način igre";
+"game.mode.free" = "Slobodno bacanje";
+"game.mode.yahtzee" = "Yahtzee pomoćnik";
+"game.mode.sum" = "Igra zbroja";
+"game.mode.highest" = "Najveća vrijednost";
+
+/* Themes */
+"theme.standard" = "Standardna";
+"theme.dark" = "Tamna";
+"theme.colorful" = "Šarena";
+"theme.classic" = "Klasična";
+
+
+
