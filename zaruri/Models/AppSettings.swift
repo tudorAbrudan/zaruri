@@ -17,6 +17,8 @@ struct AppSettings: Codable, Equatable {
     var keepHistory: Bool
     var maxHistoryItems: Int
     var selectedGameMode: String  // Store as String for Codable
+    var showTotal: Bool?  // Show/hide total on main screen (optional for backward compatibility)
+    var diceType: DiceType?  // Dice type (optional for backward compatibility)
     
     init() {
         numberOfDice = 2
@@ -26,6 +28,18 @@ struct AppSettings: Codable, Equatable {
         keepHistory = true
         maxHistoryItems = 50
         selectedGameMode = GameMode.free.rawValue
+        showTotal = true
+        diceType = .d6  // Default to d6
+    }
+    
+    // Computed property for easy access
+    var showTotalValue: Bool {
+        return showTotal ?? true  // Default to true if not set
+    }
+    
+    // Computed property for easy access to dice type
+    var diceTypeValue: DiceType {
+        return diceType ?? .d6  // Default to d6 if not set
     }
 }
 

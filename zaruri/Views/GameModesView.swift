@@ -21,41 +21,46 @@ struct GameModesView: View {
     }
     
     var body: some View {
-        ScrollView {
-            Form {
-                // Mode selection
-                Section(header: Text("Mod de joc")) {
-                    Picker("Mod", selection: Binding(
-                        get: { selectedMode },
-                        set: { newMode in
-                            viewModel.settings.selectedGameMode = newMode.rawValue
-                            viewModel.saveSettings()
-                        }
-                    )) {
-                        ForEach(GameMode.allCases, id: \.self) { mode in
-                            Text(mode.displayName).tag(mode)
+        Form {
+            // Mode selection
+            Section(header: Text("Mod de joc")) {
+                Picker("Mod", selection: Binding(
+                    get: { 
+                        GameMode(rawValue: viewModel.settings.selectedGameMode) ?? .free
+                    },
+                    set: { newMode in
+                        let oldMode = GameMode(rawValue: viewModel.settings.selectedGameMode) ?? .free
+                        viewModel.settings.selectedGameMode = newMode.rawValue
+                        viewModel.saveSettings()
+                        // Reset waiting state if switching away from turn-based mode
+                        if oldMode == .turnBased && newMode != .turnBased {
+                            viewModel.waitingForNextPlayer = false
                         }
                     }
-                    
-                    Text(selectedMode.description)
-                        .font(isIPad ? .body : .caption)
-                        .foregroundColor(.secondary)
+                )) {
+                    ForEach(GameMode.allCases, id: \.self) { mode in
+                        Text(mode.displayName).tag(mode)
+                    }
                 }
                 
-                // Mode-specific content
-                Section {
-                    switch selectedMode {
-                    case .free:
-                        freeModeView
-                    case .sum:
-                        sumModeView
-                    case .highest:
-                        highestModeView
-                    }
+                Text(selectedMode.description)
+                    .font(isIPad ? .body : .caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            // Mode-specific content
+            Section {
+                switch selectedMode {
+                case .free:
+                    freeModeView
+                case .sum:
+                    sumModeView
+                case .highest:
+                    highestModeView
+                case .turnBased:
+                    turnBasedModeView
                 }
             }
-            .frame(maxWidth: isIPad ? 800 : .infinity)
-            .frame(maxWidth: .infinity)
         }
         .navigationBarTitle("Moduri de joc", displayMode: .inline)
     }
@@ -290,6 +295,132 @@ struct GameModesView: View {
                 Text("Ai nevoie de cel puțin 3 zaruri pentru acest mod de joc.")
                     .font(.caption)
                     .foregroundColor(.secondary)
+            }
+        }
+    }
+    
+    // MARK: - Turn-based Mode
+    
+    @State private var newPlayerName: String = ""
+    
+    private var turnBasedModeView: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Joc cu jucători")
+                .font(.headline)
+            
+            Text("Configurează lista de jucători care vor arunca pe rând.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            // Current player indicator
+            if let currentPlayer = viewModel.currentPlayerName {
+                HStack {
+                    Image(systemName: "person.fill")
+                        .foregroundColor(.blue)
+                    Text("Jucător curent: \(currentPlayer)")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.blue)
+                }
+                .padding(.vertical, 8)
+            }
+            
+            Divider()
+            
+            // Players list
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Jucători (\(viewModel.gameState.turnBasedPlayers.count)/10)")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                
+                if viewModel.gameState.turnBasedPlayers.isEmpty {
+                    Text("Nu există jucători. Adaugă cel puțin 2 jucători pentru a începe.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.vertical, 8)
+                } else {
+                    ForEach(0..<viewModel.gameState.turnBasedPlayers.count, id: \.self) { index in
+                        let player = viewModel.gameState.turnBasedPlayers[index]
+                        ZStack(alignment: .trailing) {
+                            // Background row - not clickable
+                            HStack {
+                                // Current player indicator
+                                if index == viewModel.gameState.turnBasedCurrentPlayerIndex {
+                                    Image(systemName: "arrow.right.circle.fill")
+                                        .foregroundColor(.blue)
+                                } else {
+                                    Image(systemName: "circle")
+                                        .foregroundColor(.gray)
+                                }
+                                
+                                Text(player)
+                                    .font(.body)
+                                
+                                Spacer()
+                            }
+                            .padding(.vertical, 4)
+                            .allowsHitTesting(false)
+                            
+                            // Delete button - only clickable element
+                            Button(action: {
+                                viewModel.removeTurnBasedPlayer(at: index)
+                            }) {
+                                Image(systemName: "trash")
+                                    .foregroundColor(.red)
+                                    .padding(8)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .allowsHitTesting(true)
+                        }
+                    }
+                }
+            }
+            
+            Divider()
+            
+            // Add player section
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Adaugă jucător")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                
+                HStack {
+                    TextField("Nume jucător", text: $newPlayerName)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                    
+                    Button(action: {
+                        viewModel.addTurnBasedPlayer(newPlayerName)
+                        newPlayerName = ""
+                    }) {
+                        Image(systemName: "plus.circle.fill")
+                            .foregroundColor(.blue)
+                            .font(.system(size: 22, weight: .regular))
+                    }
+                    .disabled(newPlayerName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || 
+                             viewModel.gameState.turnBasedPlayers.count >= 10)
+                }
+                
+                if viewModel.gameState.turnBasedPlayers.count >= 10 {
+                    Text("Ai atins limita de 10 jucători.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            Divider()
+            
+            // Reset turn button
+            if !viewModel.gameState.turnBasedPlayers.isEmpty {
+                Button(action: {
+                    viewModel.resetGameState()
+                }) {
+                    HStack {
+                        Image(systemName: "arrow.counterclockwise")
+                        Text("Resetează rândul")
+                    }
+                    .font(.subheadline)
+                    .foregroundColor(.blue)
+                }
             }
         }
     }

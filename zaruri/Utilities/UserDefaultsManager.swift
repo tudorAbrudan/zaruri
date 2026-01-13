@@ -62,9 +62,20 @@ class UserDefaultsManager {
     /// Load app settings
     func loadSettings() -> AppSettings {
         guard let data = userDefaults.data(forKey: settingsKey),
-              let settings = try? JSONDecoder().decode(AppSettings.self, from: data) else {
+              var settings = try? JSONDecoder().decode(AppSettings.self, from: data) else {
             return AppSettings()  // Return default settings
         }
+        
+        // Ensure showTotal is set (for backward compatibility with old settings)
+        if settings.showTotal == nil {
+            settings.showTotal = true  // Default to true
+        }
+        
+        // Ensure diceType is set (for backward compatibility with old settings)
+        if settings.diceType == nil {
+            settings.diceType = .d6  // Default to d6
+        }
+        
         return settings
     }
     

@@ -84,7 +84,8 @@ struct HistoryView: View {
         return viewModel.history.filter { roll in
             roll.formattedValues.localizedCaseInsensitiveContains(searchText) ||
             String(roll.total).contains(searchText) ||
-            roll.formattedDate.localizedCaseInsensitiveContains(searchText)
+            roll.formattedDate.localizedCaseInsensitiveContains(searchText) ||
+            (roll.playerName?.localizedCaseInsensitiveContains(searchText) ?? false)
         }
     }
 }
@@ -96,10 +97,18 @@ struct HistoryRow: View {
     
     var body: some View {
         HStack {
-            // Dice values
+            // Dice values with player name
             VStack(alignment: .leading, spacing: 4) {
-                Text(roll.formattedValues)
-                    .font(.headline)
+                HStack(spacing: 4) {
+                    if let playerName = roll.playerName, !playerName.isEmpty {
+                        Text("\(playerName):")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .foregroundColor(.blue)
+                    }
+                    Text(roll.formattedValues)
+                        .font(.headline)
+                }
                 Text(roll.formattedDate)
                     .font(.caption)
                     .foregroundColor(.secondary)

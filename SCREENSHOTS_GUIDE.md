@@ -79,3 +79,10 @@ Scriptul va crea automat următoarele dimensiuni:
 
 
 
+
+
+
+
+
+
+

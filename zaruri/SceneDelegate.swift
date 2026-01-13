@@ -22,6 +22,17 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.rootViewController = UIHostingController(rootView: contentView)
         window.makeKeyAndVisible()
         self.window = window
+        
+        // Initialize feedback system
+        FeedbackManager.shared.requestNotificationPermissions()
+        FeedbackManager.shared.checkForUpdate()
+        
+        // Check if should show feedback automatically
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            if FeedbackManager.shared.shouldShowFeedbackAutomatically() {
+                FeedbackManager.shared.showFeedback()
+            }
+        }
     }
     
     func sceneDidDisconnect(_ scene: UIScene) {
@@ -29,7 +40,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
     
     func sceneDidBecomeActive(_ scene: UIScene) {
-        // No action needed
+        // Cancel notification if app is opened
+        FeedbackManager.shared.cancelScheduledNotifications()
     }
     
     func sceneWillResignActive(_ scene: UIScene) {

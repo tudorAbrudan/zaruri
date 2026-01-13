@@ -14,13 +14,15 @@ struct DiceRoll: Identifiable, Codable, Equatable {
     let total: Int
     let timestamp: Date
     let numberOfDice: Int
+    let playerName: String?
     
-    init(id: UUID = UUID(), values: [Int], timestamp: Date = Date()) {
+    init(id: UUID = UUID(), values: [Int], timestamp: Date = Date(), playerName: String? = nil) {
         self.id = id
         self.values = values
         self.total = values.reduce(0, +)
         self.timestamp = timestamp
         self.numberOfDice = values.count
+        self.playerName = playerName
     }
     
     /// Formatted date string for display
@@ -35,7 +37,14 @@ struct DiceRoll: Identifiable, Codable, Equatable {
     var formattedValues: String {
         values.map { String($0) }.joined(separator: ", ")
     }
+    
+    /// Formatted player name for display
+    var formattedPlayerName: String {
+        return playerName ?? ""
+    }
 }
+
+
 
 
 

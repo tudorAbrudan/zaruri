@@ -23,8 +23,15 @@ struct Dice3DView: View {
 }
 
 #Preview {
-    Dice3DView(dice: Dice(value: 4), size: 120)
+    Dice3DView(dice: Dice(value: 4, type: .d6), size: 120)
 }
+
+
+
+
+
+
+
 
 
 

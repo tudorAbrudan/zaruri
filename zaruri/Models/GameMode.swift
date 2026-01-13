@@ -12,6 +12,7 @@ enum GameMode: String, Codable, CaseIterable {
     case free = "free"
     case sum = "sum"
     case highest = "highest"
+    case turnBased = "turnBased"
     
     var displayName: String {
         switch self {
@@ -21,6 +22,8 @@ enum GameMode: String, Codable, CaseIterable {
             return "Joc cu sumă"
         case .highest:
             return "Valoare maximă"
+        case .turnBased:
+            return "Cu jucători"
         }
     }
     
@@ -32,6 +35,8 @@ enum GameMode: String, Codable, CaseIterable {
             return "Încearcă să obții o sumă țintă"
         case .highest:
             return "Încearcă să obții cea mai mare valoare posibilă"
+        case .turnBased:
+            return "Joc cu mai mulți jucători pe rând"
         }
     }
     
@@ -43,6 +48,8 @@ enum GameMode: String, Codable, CaseIterable {
             return 2
         case .highest:
             return 3
+        case .turnBased:
+            return 1  // Flexible
         }
     }
 }

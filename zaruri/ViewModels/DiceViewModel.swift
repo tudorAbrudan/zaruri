@@ -19,6 +19,8 @@ class DiceViewModel: ObservableObject {
     @Published var history: [DiceRoll] = []
     @Published var settings: AppSettings
     @Published var gameState: GameState
+    @Published var waitingForNextPlayer: Bool = false
+    @Published var showTargetReachedAlert: Bool = false
     
     // MARK: - Private Properties
     
@@ -60,15 +62,16 @@ class DiceViewModel: ObservableObject {
     
     // MARK: - Dice Management
     
-    /// Setup dice based on current count
+    /// Setup dice based on current count and type
     func setupDices() {
-        dices = (0..<numberOfDice).map { _ in Dice() }
+        let diceType = settings.diceTypeValue
+        dices = (0..<numberOfDice).map { _ in Dice(type: diceType) }
         updateTotal()
     }
     
     /// Update number of dice
     func updateNumberOfDice(_ count: Int) {
-        guard count >= 1 && count <= 3 else { return }
+        guard count >= 1 && count <= 6 else { return }
         numberOfDice = count
         settings.numberOfDice = count
         setupDices()
@@ -132,7 +135,10 @@ class DiceViewModel: ObservableObject {
         
         // Save to history
         if settings.keepHistory {
-            saveToHistory(values: rollValues)
+            // Get current player name if in turn-based mode
+            let currentMode = GameMode(rawValue: settings.selectedGameMode) ?? .free
+            let playerName: String? = (currentMode == .turnBased) ? gameState.getCurrentPlayerName() : nil
+            saveToHistory(values: rollValues, playerName: playerName)
         }
     }
     
@@ -143,30 +149,53 @@ class DiceViewModel: ObservableObject {
         
         switch currentMode {
         case .sum:
+            let previousReached = gameState.sumGameReachedTarget
             gameState.updateSumGame(total: total, diceCount: numberOfDice)
             saveGameState()
             
             // Special feedback if target reached
-            if gameState.sumGameReachedTarget {
+            if gameState.sumGameReachedTarget && !previousReached {
+                // Target just reached (wasn't reached before)
                 if settings.hapticEnabled {
                     hapticManager.playRollComplete()
+                }
+                // Show alert on main screen
+                showTargetReachedAlert = true
+                // Auto-hide after 3 seconds
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                    self.showTargetReachedAlert = false
                 }
             }
             
         case .highest:
+            let previousMaxReached = gameState.highestValueMaxReached
             gameState.updateHighestValue(total: total, diceCount: numberOfDice)
             saveGameState()
             
             // Special feedback if max reached
-            if gameState.highestValueMaxReached {
+            if gameState.highestValueMaxReached && !previousMaxReached {
+                // Max just reached (wasn't reached before)
                 if settings.hapticEnabled {
                     hapticManager.playRollComplete()
+                }
+                // Show alert on main screen
+                showTargetReachedAlert = true
+                // Auto-hide after 3 seconds
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                    self.showTargetReachedAlert = false
                 }
             }
             
         case .free:
             // No special tracking for free mode
             break
+            
+        case .turnBased:
+            // For turn-based mode, set waiting state after roll
+            if !gameState.turnBasedPlayers.isEmpty {
+                waitingForNextPlayer = true
+            }
+            saveGameState()
         }
     }
     
@@ -184,7 +213,13 @@ class DiceViewModel: ObservableObject {
             gameState.resetHighestValue()
         case .free:
             break
+        case .turnBased:
+            gameState.resetTurnBased()
+            waitingForNextPlayer = false
         }
+        
+        // Hide any active alerts
+        showTargetReachedAlert = false
         
         saveGameState()
     }
@@ -202,8 +237,8 @@ class DiceViewModel: ObservableObject {
     
     // MARK: - History Management
     
-    private func saveToHistory(values: [Int]) {
-        let roll = DiceRoll(values: values)
+    private func saveToHistory(values: [Int], playerName: String? = nil) {
+        let roll = DiceRoll(values: values, playerName: playerName)
         history.insert(roll, at: 0)
         
         // Limit history size
@@ -248,8 +283,83 @@ class DiceViewModel: ObservableObject {
         saveSettings()
     }
     
+    func updateDiceType(_ type: DiceType) {
+        settings.diceType = type
+        setupDices()  // Recreate dice with new type
+        saveSettings()
+    }
+    
     func saveSettings() {
         userDefaultsManager.saveSettings(settings)
+    }
+    
+    // MARK: - Turn-based Mode
+    
+    var isTurnBasedMode: Bool {
+        let currentMode = GameMode(rawValue: settings.selectedGameMode) ?? .free
+        return currentMode == .turnBased
+    }
+    
+    var currentPlayerName: String? {
+        return gameState.getCurrentPlayerName()
+    }
+    
+    var nextPlayerName: String? {
+        return gameState.getNextPlayerName()
+    }
+    
+    func advanceToNextPlayer() {
+        gameState.advanceToNextPlayer()
+        waitingForNextPlayer = false
+        saveGameState()
+    }
+    
+    func setTurnBasedPlayers(_ players: [String]) {
+        var newState = gameState
+        newState.setTurnBasedPlayers(players)
+        gameState = newState
+        // Reset waiting state when players are changed
+        waitingForNextPlayer = false
+        saveGameState()
+    }
+    
+    func addTurnBasedPlayer(_ playerName: String) {
+        let trimmedName = playerName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return }
+        guard gameState.turnBasedPlayers.count < 10 else { return }
+        
+        var players = gameState.turnBasedPlayers
+        players.append(trimmedName)
+        var newState = gameState
+        newState.setTurnBasedPlayers(players)
+        gameState = newState
+        waitingForNextPlayer = false
+        saveGameState()
+    }
+    
+    func removeTurnBasedPlayer(at index: Int) {
+        guard index >= 0 && index < gameState.turnBasedPlayers.count else { return }
+        
+        var players = gameState.turnBasedPlayers
+        players.remove(at: index)
+        var newState = gameState
+        if players.count >= 2 {
+            newState.setTurnBasedPlayers(players)
+        } else {
+            // Need at least 2 players
+            newState.setTurnBasedPlayers([])
+        }
+        gameState = newState
+        waitingForNextPlayer = false
+        saveGameState()
+    }
+    
+    func switchGameMode() {
+        // Reset waiting state when switching modes
+        let currentMode = GameMode(rawValue: settings.selectedGameMode) ?? .free
+        if currentMode != .turnBased {
+            waitingForNextPlayer = false
+        }
     }
 }
 

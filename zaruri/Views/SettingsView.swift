@@ -11,19 +11,32 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject var viewModel: DiceViewModel
     @Environment(\.presentationMode) var presentationMode
+    @State private var showFeedbackSheet = false
     
     var body: some View {
         Form {
             // Dice count section
             Section(header: Text("Număr zaruri")) {
                 Stepper(
-                    "\(viewModel.numberOfDice) zaruri",
+                    "\(viewModel.numberOfDice) \(viewModel.numberOfDice == 1 ? "zar" : "zaruri")",
                     value: Binding(
                         get: { viewModel.numberOfDice },
                         set: { viewModel.updateNumberOfDice($0) }
                     ),
-                    in: 1...3
+                    in: 1...6
                 )
+            }
+            
+            // Dice type section
+            Section(header: Text("Tip zaruri")) {
+                Picker("Tip zaruri", selection: Binding(
+                    get: { viewModel.settings.diceTypeValue },
+                    set: { viewModel.updateDiceType($0) }
+                )) {
+                    ForEach(DiceType.allCases, id: \.self) { type in
+                        Text(type.displayName).tag(type)
+                    }
+                }
             }
             
             // Sound and haptic section
@@ -49,6 +62,17 @@ struct SettingsView: View {
                         Text(theme.displayName).tag(theme)
                     }
                 }
+            }
+            
+            // Display section
+            Section(header: Text("Afișare")) {
+                Toggle("Afișează total", isOn: Binding(
+                    get: { viewModel.settings.showTotalValue },
+                    set: { newValue in
+                        viewModel.settings.showTotal = newValue
+                        viewModel.updateSettings(viewModel.settings)
+                    }
+                ))
             }
             
             // History section
@@ -90,9 +114,27 @@ struct SettingsView: View {
                 }
                 .foregroundColor(.orange)
             }
+            
+            // Feedback section
+            Section(header: Text("Despre")) {
+                Button(action: {
+                    FeedbackManager.shared.showFeedback()
+                }) {
+                    HStack {
+                        Image(systemName: "star.fill")
+                            .foregroundColor(.yellow)
+                        Text("Trimite Feedback")
+                    }
+                }
+            }
         }
         .navigationBarTitle("Setări", displayMode: .inline)
-        .navigationBarBackButtonHidden(false)
+        .sheet(isPresented: $showFeedbackSheet) {
+            FeedbackView(feedbackManager: FeedbackManager.shared)
+        }
+        .onReceive(FeedbackManager.shared.$showFeedbackView) { show in
+            showFeedbackSheet = show
+        }
     }
 }
 

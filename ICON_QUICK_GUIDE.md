@@ -39,3 +39,10 @@ Folosește orice tool de design (Figma, Sketch, Photoshop, sau chiar Canva):
 
 
 
+
+
+
+
+
+
+
