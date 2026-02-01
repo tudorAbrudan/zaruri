@@ -23,6 +23,8 @@ struct AppSettings: Codable, Equatable {
     var turnBasedShowTimer: Bool?
     /// Show dice area in "Cu jucători" mode (optional: some timed games don't use dice).
     var turnBasedShowDice: Bool?
+    /// Enable text-to-speech announcements (e.g. player names)
+    var speechEnabled: Bool?
     
     init() {
         numberOfDice = 2
@@ -36,6 +38,7 @@ struct AppSettings: Codable, Equatable {
         diceType = .d6  // Default to d6
         turnBasedShowTimer = true
         turnBasedShowDice = true
+        speechEnabled = true  // Enable by default
     }
     
     // Computed property for easy access
@@ -54,6 +57,10 @@ struct AppSettings: Codable, Equatable {
     
     var showTurnBasedDiceValue: Bool {
         return turnBasedShowDice ?? true
+    }
+    
+    var speechEnabledValue: Bool {
+        return speechEnabled ?? true
     }
 }
 

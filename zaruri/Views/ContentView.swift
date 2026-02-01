@@ -66,8 +66,13 @@ struct ContentView: View {
                             .padding(.horizontal, isIPad ? 40 : 20)
                     }
                     
-                    // Total display (if more than 1 dice and enabled, and not coin flip mode)
-                    if viewModel.numberOfDice > 1 && viewModel.settings.showTotalValue && currentMode != .coinFlip {
+                    // Total display (if more than 1 dice and enabled, and not coin flip mode, and not turn-based without dice)
+                    let shouldShowTotal = viewModel.numberOfDice > 1 
+                        && viewModel.settings.showTotalValue 
+                        && currentMode != .coinFlip
+                        && !(currentMode == .turnBased && !viewModel.settings.showTurnBasedDiceValue)
+                    
+                    if shouldShowTotal {
                         totalDisplay
                             .padding(.top, isIPad ? 40 : 20)
                     }
@@ -106,13 +111,30 @@ struct ContentView: View {
             }
             .navigationBarTitle("")
             .navigationBarItems(
-                leading: viewModel.isTurnBasedMode && viewModel.settings.showTurnBasedTimerValue
-                    ? Button(action: { viewModel.toggleTurnBasedTimerPaused() }) {
-                        Image(systemName: viewModel.gameState.isTurnBasedTimerPaused ? "play.circle.fill" : "pause.circle.fill")
-                            .font(.system(size: 22))
-                            .foregroundColor(viewModel.gameState.isTurnBasedTimerPaused ? .green : .orange)
+                leading: HStack(spacing: 16) {
+                    if viewModel.isTurnBasedMode && viewModel.settings.showTurnBasedTimerValue {
+                        Button(action: { viewModel.toggleTurnBasedTimerPaused() }) {
+                            Image(systemName: viewModel.gameState.isTurnBasedTimerPaused ? "play.circle.fill" : "pause.circle.fill")
+                                .font(.system(size: 22))
+                                .foregroundColor(viewModel.gameState.isTurnBasedTimerPaused ? .green : .orange)
+                        }
                     }
-                    : nil,
+                    if viewModel.waitingForNextPlayer,
+                       GameMode(rawValue: viewModel.settings.selectedGameMode) == .turnBased,
+                       viewModel.settings.showTurnBasedDiceValue {
+                        Button(action: { viewModel.rollAgainForCurrentPlayer() }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.system(size: 18))
+                                Text("Aruncă iar")
+                                    .font(.system(size: 15, weight: .semibold))
+                            }
+                            .foregroundColor(viewModel.settings.theme.primaryColor)
+                        }
+                        .disabled(viewModel.isRolling)
+                        .opacity(viewModel.isRolling ? 0.6 : 1.0)
+                    }
+                },
                 trailing: HStack(spacing: 12) {
                     NavigationLink(destination: SettingsView(viewModel: viewModel)) {
                         Image(systemName: "gear")
@@ -334,6 +356,7 @@ struct ContentView: View {
     
     private func turnBasedPlayerTimerRow(index: Int) -> some View {
         let isCurrent = index == viewModel.gameState.turnBasedCurrentPlayerIndex
+        let isOut = index < viewModel.gameState.turnBasedPlayerIsOut.count && viewModel.gameState.turnBasedPlayerIsOut[index]
         let name = viewModel.gameState.turnBasedPlayers[index]
         let seconds = index < viewModel.gameState.turnBasedPlayerRemainingSeconds.count
             ? viewModel.gameState.turnBasedPlayerRemainingSeconds[index]
@@ -347,10 +370,17 @@ struct ContentView: View {
                     .font(.system(size: 18))
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text(name)
-                    .font(.system(size: isIPad ? 16 : 15, weight: isCurrent ? .semibold : .regular))
-                    .foregroundColor(isCurrent ? .blue : .primary)
-                    .lineLimit(1)
+                HStack(spacing: 4) {
+                    Text(name)
+                        .font(.system(size: isIPad ? 16 : 15, weight: isCurrent ? .semibold : .regular))
+                        .foregroundColor(isOut ? .secondary : (isCurrent ? .blue : .primary))
+                        .lineLimit(1)
+                    if isOut {
+                        Text("(ieșit)")
+                            .font(.system(size: isIPad ? 13 : 12))
+                            .foregroundColor(.secondary)
+                    }
+                }
                 Text(formatTimer(seconds: seconds))
                     .font(.system(size: isIPad ? 15 : 14, weight: .medium, design: .monospaced))
                     .foregroundColor(seconds <= 60 ? .red : .secondary)
@@ -367,6 +397,13 @@ struct ContentView: View {
             }
             
             HStack(spacing: 8) {
+                Button(action: { viewModel.togglePlayerOut(at: index) }) {
+                    Image(systemName: isOut ? "person.badge.plus" : "person.fill.xmark")
+                        .font(.system(size: isIPad ? 18 : 16))
+                        .foregroundColor(isOut ? .green : .orange)
+                        .frame(minWidth: 44, minHeight: 44)
+                }
+                .buttonStyle(PlainButtonStyle())
                 Button(action: { viewModel.addTimeForPlayer(at: index, seconds: 30) }) {
                     Text("+30s")
                         .font(.system(size: isIPad ? 16 : 15, weight: .semibold))

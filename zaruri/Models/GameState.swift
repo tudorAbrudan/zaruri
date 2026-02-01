@@ -14,6 +14,7 @@ struct GameState: Codable, Equatable {
         case highestValueBestScore, highestValueAttempts, highestValueMaxReached
         case turnBasedPlayers, turnBasedCurrentPlayerIndex
         case turnBasedPlayerRemainingSeconds, isTurnBasedTimerPaused, turnBasedInitialSeconds
+        case turnBasedPlayerIsOut
     }
     
     // Sum Game state
@@ -36,6 +37,8 @@ struct GameState: Codable, Equatable {
     var isTurnBasedTimerPaused: Bool
     /// Initial time per player in seconds (e.g. 30 min = 1800). Used when adding players and when resetting timers.
     var turnBasedInitialSeconds: Int
+    /// When true, player at same index is "out" this round; skipped when advancing turn until round reset.
+    var turnBasedPlayerIsOut: [Bool]
     
     init() {
         sumGameTarget = 10
@@ -52,6 +55,7 @@ struct GameState: Codable, Equatable {
         turnBasedPlayerRemainingSeconds = []
         isTurnBasedTimerPaused = false
         turnBasedInitialSeconds = 30 * 60  // 30 minutes
+        turnBasedPlayerIsOut = []
     }
     
     // MARK: - Sum Game
@@ -108,23 +112,34 @@ struct GameState: Codable, Equatable {
         return turnBasedPlayers[turnBasedCurrentPlayerIndex]
     }
     
+    /// Next player who is not out (for "Treci la X").
     func getNextPlayerName() -> String? {
-        guard !turnBasedPlayers.isEmpty else {
-            return nil
+        guard !turnBasedPlayers.isEmpty else { return nil }
+        let n = turnBasedPlayers.count
+        let isOut = turnBasedPlayerIsOut
+        var idx = (turnBasedCurrentPlayerIndex + 1) % n
+        var steps = 0
+        while steps < n && idx < isOut.count && isOut[idx] {
+            idx = (idx + 1) % n
+            steps += 1
         }
-        let nextIndex = (turnBasedCurrentPlayerIndex + 1) % turnBasedPlayers.count
-        return turnBasedPlayers[nextIndex]
+        return steps < n ? turnBasedPlayers[idx] : nil
     }
     
     mutating func advanceToNextPlayer() {
-        guard !turnBasedPlayers.isEmpty else {
-            return
+        guard !turnBasedPlayers.isEmpty else { return }
+        let n = turnBasedPlayers.count
+        turnBasedCurrentPlayerIndex = (turnBasedCurrentPlayerIndex + 1) % n
+        var steps = 0
+        while steps < n && turnBasedCurrentPlayerIndex < turnBasedPlayerIsOut.count && turnBasedPlayerIsOut[turnBasedCurrentPlayerIndex] {
+            turnBasedCurrentPlayerIndex = (turnBasedCurrentPlayerIndex + 1) % n
+            steps += 1
         }
-        turnBasedCurrentPlayerIndex = (turnBasedCurrentPlayerIndex + 1) % turnBasedPlayers.count
     }
     
     mutating func resetTurnBased() {
         turnBasedCurrentPlayerIndex = 0
+        turnBasedPlayerIsOut = turnBasedPlayers.map { _ in false }
     }
     
     mutating func setTurnBasedPlayers(_ players: [String]) {
@@ -139,6 +154,12 @@ struct GameState: Codable, Equatable {
             turnBasedPlayerRemainingSeconds.append(contentsOf: (0..<toAdd).map { _ in turnBasedInitialSeconds })
         } else if turnBasedPlayerRemainingSeconds.count > players.count {
             turnBasedPlayerRemainingSeconds = Array(turnBasedPlayerRemainingSeconds.prefix(players.count))
+        }
+        // Sync isOut array
+        if turnBasedPlayerIsOut.count < players.count {
+            turnBasedPlayerIsOut.append(contentsOf: (0..<(players.count - turnBasedPlayerIsOut.count)).map { _ in false })
+        } else if turnBasedPlayerIsOut.count > players.count {
+            turnBasedPlayerIsOut = Array(turnBasedPlayerIsOut.prefix(players.count))
         }
     }
     
@@ -161,6 +182,7 @@ struct GameState: Codable, Equatable {
         turnBasedPlayerRemainingSeconds = try c.decodeIfPresent([Int].self, forKey: .turnBasedPlayerRemainingSeconds) ?? []
         isTurnBasedTimerPaused = try c.decodeIfPresent(Bool.self, forKey: .isTurnBasedTimerPaused) ?? false
         turnBasedInitialSeconds = try c.decodeIfPresent(Int.self, forKey: .turnBasedInitialSeconds) ?? (30 * 60)
+        turnBasedPlayerIsOut = try c.decodeIfPresent([Bool].self, forKey: .turnBasedPlayerIsOut) ?? []
     }
     
     func encode(to encoder: Encoder) throws {
@@ -177,6 +199,7 @@ struct GameState: Codable, Equatable {
         try c.encode(turnBasedPlayerRemainingSeconds, forKey: .turnBasedPlayerRemainingSeconds)
         try c.encode(isTurnBasedTimerPaused, forKey: .isTurnBasedTimerPaused)
         try c.encode(turnBasedInitialSeconds, forKey: .turnBasedInitialSeconds)
+        try c.encode(turnBasedPlayerIsOut, forKey: .turnBasedPlayerIsOut)
     }
 }
 

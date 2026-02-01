@@ -50,8 +50,14 @@ class SoundManager {
     func playRollSound() {
         guard isEnabled else { return }
         
-        // Use system sound for simplicity (works offline, no file needed)
-        AudioServicesPlaySystemSound(1104)  // System sound ID for dice roll effect
+        // Generate dice roll sound effect using multiple system sounds for realistic effect
+        // Play shake sound followed by dice landing
+        DispatchQueue.main.async {
+            AudioServicesPlaySystemSound(1104)  // Shake/rattle
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            AudioServicesPlaySystemSound(1105)  // Land/tap
+        }
     }
     
     /// Play success sound

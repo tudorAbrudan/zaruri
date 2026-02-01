@@ -31,6 +31,7 @@ class DiceViewModel: ObservableObject {
     private let hapticManager: HapticFeedbackManager
     private var turnBasedCountdownTimer: Timer?
     private let soundManager: SoundManager
+    private let speechManager: SpeechManager
     private let userDefaultsManager: UserDefaultsManager
     
     // MARK: - Initialization
@@ -38,10 +39,12 @@ class DiceViewModel: ObservableObject {
     init(
         hapticManager: HapticFeedbackManager = .shared,
         soundManager: SoundManager = .shared,
+        speechManager: SpeechManager = .shared,
         userDefaultsManager: UserDefaultsManager = .shared
     ) {
         self.hapticManager = hapticManager
         self.soundManager = soundManager
+        self.speechManager = speechManager
         self.userDefaultsManager = userDefaultsManager
         
         // Load settings
@@ -383,6 +386,13 @@ class DiceViewModel: ObservableObject {
         gameState.advanceToNextPlayer()
         waitingForNextPlayer = false
         saveGameState()
+        
+        // Announce next player's name if TTS enabled and in turn-based mode
+        if isTurnBasedMode, settings.speechEnabledValue, let playerName = gameState.getCurrentPlayerName() {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.speechManager.speak(playerName)
+            }
+        }
     }
     
     func setTurnBasedPlayers(_ players: [String]) {
@@ -405,6 +415,33 @@ class DiceViewModel: ObservableObject {
         newState.setTurnBasedPlayers(players)
         gameState = newState
         waitingForNextPlayer = false
+        saveGameState()
+    }
+    
+    /// Re-roll for the current player (turn-based, when waiting for next). Does not advance turn.
+    func rollAgainForCurrentPlayer() {
+        guard isTurnBasedMode, waitingForNextPlayer else { return }
+        let currentMode = GameMode(rawValue: settings.selectedGameMode) ?? .free
+        if currentMode == .coinFlip {
+            rollCoin()
+        } else {
+            rollDices()
+        }
+    }
+    
+    /// Toggle "out of game" for player at index. Out players are skipped when advancing turn until round reset.
+    func togglePlayerOut(at index: Int) {
+        guard isTurnBasedMode,
+              index >= 0,
+              index < gameState.turnBasedPlayers.count else { return }
+        // Ensure isOut array is synced
+        if gameState.turnBasedPlayerIsOut.count != gameState.turnBasedPlayers.count {
+            var newState = gameState
+            newState.setTurnBasedPlayers(gameState.turnBasedPlayers)
+            gameState = newState
+        }
+        guard index < gameState.turnBasedPlayerIsOut.count else { return }
+        gameState.turnBasedPlayerIsOut[index].toggle()
         saveGameState()
     }
     

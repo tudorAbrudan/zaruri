@@ -50,6 +50,14 @@ struct SettingsView: View {
                     get: { viewModel.settings.hapticEnabled },
                     set: { _ in viewModel.toggleHaptic() }
                 ))
+                
+                Toggle("Anunță jucători (voce)", isOn: Binding(
+                    get: { viewModel.settings.speechEnabledValue },
+                    set: { newValue in
+                        viewModel.settings.speechEnabled = newValue
+                        viewModel.updateSettings(viewModel.settings)
+                    }
+                ))
             }
             
             // Theme section
