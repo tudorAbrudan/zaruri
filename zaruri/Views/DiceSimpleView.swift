@@ -14,22 +14,127 @@ struct DiceSimpleView: View {
     
     var body: some View {
         ZStack {
-            // Background shape with 3D gradient effect
+            // Drop shadow on background (projected shadow)
+            if dice.type == .d6 {
+                RoundedRectangle(cornerRadius: size * 0.15)
+                    .fill(Color.black.opacity(0.2))
+                    .blur(radius: size * 0.1)
+                    .offset(x: 0, y: size * 0.05)
+                    .frame(width: size * 0.95, height: size * 0.95)
+            } else {
+                diceBackgroundShape
+                    .fill(Color.black.opacity(0.2))
+                    .blur(radius: size * 0.1)
+                    .offset(x: 0, y: size * 0.05)
+                    .frame(width: size * 0.95, height: size * 0.95)
+            }
+            
+            // Main dice shape with enhanced 3D effects
             Group {
                 if dice.type == .d6 {
-                    // Square for d6 (cube) - special case for rounded rectangle
-                    RoundedRectangle(cornerRadius: size * 0.15)
-                        .fill(diceGradient)
-                        .shadow(color: Color.black.opacity(0.3), radius: 10, x: 0, y: 5)
-                    RoundedRectangle(cornerRadius: size * 0.15)
-                        .stroke(Color.white.opacity(0.3), lineWidth: 1.5)
+                    // Square for d6 (cube) - enhanced 3D
+                    ZStack {
+                        // Base shape with gradient
+                        RoundedRectangle(cornerRadius: size * 0.15)
+                            .fill(diceGradient)
+                        
+                        // Top highlight (light reflection)
+                        RoundedRectangle(cornerRadius: size * 0.15)
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color.white.opacity(0.4),
+                                        Color.clear
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .center
+                                )
+                            )
+                            .frame(width: size * 0.7, height: size * 0.7)
+                            .offset(x: -size * 0.1, y: -size * 0.1)
+                        
+                        // Bottom shadow (depth)
+                        RoundedRectangle(cornerRadius: size * 0.15)
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color.clear,
+                                        Color.black.opacity(0.3)
+                                    ]),
+                                    startPoint: .center,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                        
+                        // Border with highlight
+                        RoundedRectangle(cornerRadius: size * 0.15)
+                            .stroke(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color.white.opacity(0.6),
+                                        Color.white.opacity(0.2),
+                                        Color.black.opacity(0.3)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 2
+                            )
+                    }
+                    .shadow(color: Color.black.opacity(0.4), radius: size * 0.15, x: 0, y: size * 0.08)
+                    .shadow(color: Color.black.opacity(0.2), radius: size * 0.3, x: 0, y: size * 0.15)
                 } else {
-                    // Other shapes with 3D gradient
-                    diceBackgroundShape
-                        .fill(diceGradient)
-                        .shadow(color: Color.black.opacity(0.3), radius: 10, x: 0, y: 5)
-                    diceBackgroundShape
-                        .stroke(Color.white.opacity(0.3), lineWidth: 1.5)
+                    // Other shapes with enhanced 3D
+                    ZStack {
+                        // Base shape with gradient
+                        diceBackgroundShape
+                            .fill(diceGradient)
+                        
+                        // Top highlight
+                        diceBackgroundShape
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color.white.opacity(0.4),
+                                        Color.clear
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .center
+                                )
+                            )
+                            .frame(width: size * 0.7, height: size * 0.7)
+                            .offset(x: -size * 0.1, y: -size * 0.1)
+                        
+                        // Bottom shadow
+                        diceBackgroundShape
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color.clear,
+                                        Color.black.opacity(0.3)
+                                    ]),
+                                    startPoint: .center,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                        
+                        // Border with highlight
+                        diceBackgroundShape
+                            .stroke(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color.white.opacity(0.6),
+                                        Color.white.opacity(0.2),
+                                        Color.black.opacity(0.3)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 2
+                            )
+                    }
+                    .shadow(color: Color.black.opacity(0.4), radius: size * 0.15, x: 0, y: size * 0.08)
+                    .shadow(color: Color.black.opacity(0.2), radius: size * 0.3, x: 0, y: size * 0.15)
                 }
             }
             
@@ -37,22 +142,19 @@ struct DiceSimpleView: View {
             diceContentView
         }
         .frame(width: size, height: size)
-        .rotation3DEffect(
-            .degrees(dice.isRolling ? 360 : 0),
-            axis: (x: 1, y: 1, z: 0),
-            perspective: 0.3
-        )
+        .rotationEffect(.degrees(dice.isRolling ? 360 : 0))
         .animation(dice.isRolling ? Animation.linear(duration: 0.3).repeatForever(autoreverses: false) : .default, value: dice.isRolling)
     }
     
-    // 3D gradient for each dice type
+    // Enhanced 3D gradient for each dice type with more contrast
     private var diceGradient: LinearGradient {
         let colors = diceTypeColors
         return LinearGradient(
-            gradient: Gradient(colors: [
-                colors.light,
-                colors.base,
-                colors.dark
+            gradient: Gradient(stops: [
+                .init(color: colors.light, location: 0.0),
+                .init(color: colors.base, location: 0.3),
+                .init(color: colors.base, location: 0.7),
+                .init(color: colors.dark, location: 1.0)
             ]),
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -62,6 +164,12 @@ struct DiceSimpleView: View {
     // Colors for each dice type (matching the image)
     private var diceTypeColors: (base: Color, light: Color, dark: Color) {
         switch dice.type {
+        case .d2:
+            // Bronze/coin for d2
+            return (Color(red: 0.8, green: 0.6, blue: 0.4), Color(red: 0.85, green: 0.68, blue: 0.45), Color(red: 0.6, green: 0.45, blue: 0.25))
+        case .d3:
+            // Teal for d3
+            return (Color(red: 0.2, green: 0.7, blue: 0.65), Color(red: 0.3, green: 0.78, blue: 0.72), Color(red: 0.1, green: 0.55, blue: 0.5))
         case .d4:
             // Green for d4
             return (Color.green, Color.green.opacity(0.8), Color(red: 0.0, green: 0.6, blue: 0.0))
@@ -85,6 +193,12 @@ struct DiceSimpleView: View {
     
     private var diceBackgroundShape: AnyShape {
         switch dice.type {
+        case .d2:
+            // Circle for d2 (coin-like when multiple)
+            return AnyShape(Circle())
+        case .d3:
+            // Triangle for d3
+            return AnyShape(Triangle())
         case .d4:
             // Triangle for d4 (tetrahedron)
             return AnyShape(Triangle())
@@ -121,7 +235,15 @@ struct DiceSimpleView: View {
         Text("\(dice.value)")
             .font(.system(size: size * 0.4, weight: .bold))
             .foregroundColor(.white)
-            .shadow(color: Color.black.opacity(0.5), radius: 2, x: 1, y: 1)
+            .shadow(color: Color.black.opacity(0.7), radius: 3, x: 0, y: 2)
+            .shadow(color: Color.black.opacity(0.4), radius: 1, x: 0, y: 1)
+            .overlay(
+                Text("\(dice.value)")
+                    .font(.system(size: size * 0.4, weight: .bold))
+                    .foregroundColor(Color.white.opacity(0.3))
+                    .offset(x: -1, y: -1)
+                    .blendMode(.overlay)
+            )
     }
     
     private var dotsView: some View {
@@ -135,124 +257,481 @@ struct DiceSimpleView: View {
                 case 1:
                     // Center dot
                     Circle()
-                        .fill(Color.white)
+                        .fill(
+                            RadialGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white,
+                                    Color.white.opacity(0.8)
+                                ]),
+                                center: .topLeading,
+                                startRadius: 0,
+                                endRadius: dotSize
+                            )
+                        )
                         .frame(width: dotSize, height: dotSize)
-                        .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.5), radius: 2, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 0)
+                        .overlay(
+                            Circle()
+                                .fill(Color.white.opacity(0.4))
+                                .frame(width: dotSize * 0.4, height: dotSize * 0.4)
+                                .offset(x: -dotSize * 0.2, y: -dotSize * 0.2)
+                        )
                         .position(center)
                     
                 case 2:
                     // Top-left and bottom-right
                     Circle()
-                        .fill(Color.white)
+                        .fill(
+                            RadialGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white,
+                                    Color.white.opacity(0.8)
+                                ]),
+                                center: .topLeading,
+                                startRadius: 0,
+                                endRadius: dotSize
+                            )
+                        )
                         .frame(width: dotSize, height: dotSize)
-                        .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.5), radius: 2, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 0)
+                        .overlay(
+                            Circle()
+                                .fill(Color.white.opacity(0.4))
+                                .frame(width: dotSize * 0.4, height: dotSize * 0.4)
+                                .offset(x: -dotSize * 0.2, y: -dotSize * 0.2)
+                        )
                         .position(x: spacing, y: spacing)
                     Circle()
-                        .fill(Color.white)
+                        .fill(
+                            RadialGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white,
+                                    Color.white.opacity(0.8)
+                                ]),
+                                center: .topLeading,
+                                startRadius: 0,
+                                endRadius: dotSize
+                            )
+                        )
                         .frame(width: dotSize, height: dotSize)
-                        .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.5), radius: 2, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 0)
+                        .overlay(
+                            Circle()
+                                .fill(Color.white.opacity(0.4))
+                                .frame(width: dotSize * 0.4, height: dotSize * 0.4)
+                                .offset(x: -dotSize * 0.2, y: -dotSize * 0.2)
+                        )
                         .position(x: geometry.size.width - spacing, y: geometry.size.height - spacing)
                     
                 case 3:
                     // Top-left, center, bottom-right
                     Circle()
-                        .fill(Color.white)
+                        .fill(
+                            RadialGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white,
+                                    Color.white.opacity(0.8)
+                                ]),
+                                center: .topLeading,
+                                startRadius: 0,
+                                endRadius: dotSize
+                            )
+                        )
                         .frame(width: dotSize, height: dotSize)
-                        .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.5), radius: 2, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 0)
+                        .overlay(
+                            Circle()
+                                .fill(Color.white.opacity(0.4))
+                                .frame(width: dotSize * 0.4, height: dotSize * 0.4)
+                                .offset(x: -dotSize * 0.2, y: -dotSize * 0.2)
+                        )
                         .position(x: spacing, y: spacing)
                     Circle()
-                        .fill(Color.white)
+                        .fill(
+                            RadialGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white,
+                                    Color.white.opacity(0.8)
+                                ]),
+                                center: .topLeading,
+                                startRadius: 0,
+                                endRadius: dotSize
+                            )
+                        )
                         .frame(width: dotSize, height: dotSize)
-                        .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.5), radius: 2, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 0)
+                        .overlay(
+                            Circle()
+                                .fill(Color.white.opacity(0.4))
+                                .frame(width: dotSize * 0.4, height: dotSize * 0.4)
+                                .offset(x: -dotSize * 0.2, y: -dotSize * 0.2)
+                        )
                         .position(center)
                     Circle()
-                        .fill(Color.white)
+                        .fill(
+                            RadialGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white,
+                                    Color.white.opacity(0.8)
+                                ]),
+                                center: .topLeading,
+                                startRadius: 0,
+                                endRadius: dotSize
+                            )
+                        )
                         .frame(width: dotSize, height: dotSize)
-                        .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.5), radius: 2, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 0)
+                        .overlay(
+                            Circle()
+                                .fill(Color.white.opacity(0.4))
+                                .frame(width: dotSize * 0.4, height: dotSize * 0.4)
+                                .offset(x: -dotSize * 0.2, y: -dotSize * 0.2)
+                        )
                         .position(x: geometry.size.width - spacing, y: geometry.size.height - spacing)
                     
                 case 4:
                     // Four corners
                     Circle()
-                        .fill(Color.white)
+                        .fill(
+                            RadialGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white,
+                                    Color.white.opacity(0.8)
+                                ]),
+                                center: .topLeading,
+                                startRadius: 0,
+                                endRadius: dotSize
+                            )
+                        )
                         .frame(width: dotSize, height: dotSize)
-                        .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.5), radius: 2, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 0)
+                        .overlay(
+                            Circle()
+                                .fill(Color.white.opacity(0.4))
+                                .frame(width: dotSize * 0.4, height: dotSize * 0.4)
+                                .offset(x: -dotSize * 0.2, y: -dotSize * 0.2)
+                        )
                         .position(x: spacing, y: spacing)
                     Circle()
-                        .fill(Color.white)
+                        .fill(
+                            RadialGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white,
+                                    Color.white.opacity(0.8)
+                                ]),
+                                center: .topLeading,
+                                startRadius: 0,
+                                endRadius: dotSize
+                            )
+                        )
                         .frame(width: dotSize, height: dotSize)
-                        .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.5), radius: 2, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 0)
+                        .overlay(
+                            Circle()
+                                .fill(Color.white.opacity(0.4))
+                                .frame(width: dotSize * 0.4, height: dotSize * 0.4)
+                                .offset(x: -dotSize * 0.2, y: -dotSize * 0.2)
+                        )
                         .position(x: geometry.size.width - spacing, y: spacing)
                     Circle()
-                        .fill(Color.white)
+                        .fill(
+                            RadialGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white,
+                                    Color.white.opacity(0.8)
+                                ]),
+                                center: .topLeading,
+                                startRadius: 0,
+                                endRadius: dotSize
+                            )
+                        )
                         .frame(width: dotSize, height: dotSize)
-                        .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.5), radius: 2, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 0)
+                        .overlay(
+                            Circle()
+                                .fill(Color.white.opacity(0.4))
+                                .frame(width: dotSize * 0.4, height: dotSize * 0.4)
+                                .offset(x: -dotSize * 0.2, y: -dotSize * 0.2)
+                        )
                         .position(x: spacing, y: geometry.size.height - spacing)
                     Circle()
-                        .fill(Color.white)
+                        .fill(
+                            RadialGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white,
+                                    Color.white.opacity(0.8)
+                                ]),
+                                center: .topLeading,
+                                startRadius: 0,
+                                endRadius: dotSize
+                            )
+                        )
                         .frame(width: dotSize, height: dotSize)
-                        .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.5), radius: 2, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 0)
+                        .overlay(
+                            Circle()
+                                .fill(Color.white.opacity(0.4))
+                                .frame(width: dotSize * 0.4, height: dotSize * 0.4)
+                                .offset(x: -dotSize * 0.2, y: -dotSize * 0.2)
+                        )
                         .position(x: geometry.size.width - spacing, y: geometry.size.height - spacing)
                     
                 case 5:
                     // Four corners + center
                     Circle()
-                        .fill(Color.white)
+                        .fill(
+                            RadialGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white,
+                                    Color.white.opacity(0.8)
+                                ]),
+                                center: .topLeading,
+                                startRadius: 0,
+                                endRadius: dotSize
+                            )
+                        )
                         .frame(width: dotSize, height: dotSize)
-                        .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.5), radius: 2, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 0)
+                        .overlay(
+                            Circle()
+                                .fill(Color.white.opacity(0.4))
+                                .frame(width: dotSize * 0.4, height: dotSize * 0.4)
+                                .offset(x: -dotSize * 0.2, y: -dotSize * 0.2)
+                        )
                         .position(x: spacing, y: spacing)
                     Circle()
-                        .fill(Color.white)
+                        .fill(
+                            RadialGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white,
+                                    Color.white.opacity(0.8)
+                                ]),
+                                center: .topLeading,
+                                startRadius: 0,
+                                endRadius: dotSize
+                            )
+                        )
                         .frame(width: dotSize, height: dotSize)
-                        .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.5), radius: 2, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 0)
+                        .overlay(
+                            Circle()
+                                .fill(Color.white.opacity(0.4))
+                                .frame(width: dotSize * 0.4, height: dotSize * 0.4)
+                                .offset(x: -dotSize * 0.2, y: -dotSize * 0.2)
+                        )
                         .position(x: geometry.size.width - spacing, y: spacing)
                     Circle()
-                        .fill(Color.white)
+                        .fill(
+                            RadialGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white,
+                                    Color.white.opacity(0.8)
+                                ]),
+                                center: .topLeading,
+                                startRadius: 0,
+                                endRadius: dotSize
+                            )
+                        )
                         .frame(width: dotSize, height: dotSize)
-                        .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.5), radius: 2, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 0)
+                        .overlay(
+                            Circle()
+                                .fill(Color.white.opacity(0.4))
+                                .frame(width: dotSize * 0.4, height: dotSize * 0.4)
+                                .offset(x: -dotSize * 0.2, y: -dotSize * 0.2)
+                        )
                         .position(center)
                     Circle()
-                        .fill(Color.white)
+                        .fill(
+                            RadialGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white,
+                                    Color.white.opacity(0.8)
+                                ]),
+                                center: .topLeading,
+                                startRadius: 0,
+                                endRadius: dotSize
+                            )
+                        )
                         .frame(width: dotSize, height: dotSize)
-                        .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.5), radius: 2, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 0)
+                        .overlay(
+                            Circle()
+                                .fill(Color.white.opacity(0.4))
+                                .frame(width: dotSize * 0.4, height: dotSize * 0.4)
+                                .offset(x: -dotSize * 0.2, y: -dotSize * 0.2)
+                        )
                         .position(x: spacing, y: geometry.size.height - spacing)
                     Circle()
-                        .fill(Color.white)
+                        .fill(
+                            RadialGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white,
+                                    Color.white.opacity(0.8)
+                                ]),
+                                center: .topLeading,
+                                startRadius: 0,
+                                endRadius: dotSize
+                            )
+                        )
                         .frame(width: dotSize, height: dotSize)
-                        .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.5), radius: 2, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 0)
+                        .overlay(
+                            Circle()
+                                .fill(Color.white.opacity(0.4))
+                                .frame(width: dotSize * 0.4, height: dotSize * 0.4)
+                                .offset(x: -dotSize * 0.2, y: -dotSize * 0.2)
+                        )
                         .position(x: geometry.size.width - spacing, y: geometry.size.height - spacing)
                     
                 case 6:
                     // Two columns of three
                     Circle()
-                        .fill(Color.white)
+                        .fill(
+                            RadialGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white,
+                                    Color.white.opacity(0.8)
+                                ]),
+                                center: .topLeading,
+                                startRadius: 0,
+                                endRadius: dotSize
+                            )
+                        )
                         .frame(width: dotSize, height: dotSize)
-                        .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.5), radius: 2, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 0)
+                        .overlay(
+                            Circle()
+                                .fill(Color.white.opacity(0.4))
+                                .frame(width: dotSize * 0.4, height: dotSize * 0.4)
+                                .offset(x: -dotSize * 0.2, y: -dotSize * 0.2)
+                        )
                         .position(x: spacing, y: spacing)
                     Circle()
-                        .fill(Color.white)
+                        .fill(
+                            RadialGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white,
+                                    Color.white.opacity(0.8)
+                                ]),
+                                center: .topLeading,
+                                startRadius: 0,
+                                endRadius: dotSize
+                            )
+                        )
                         .frame(width: dotSize, height: dotSize)
-                        .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.5), radius: 2, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 0)
+                        .overlay(
+                            Circle()
+                                .fill(Color.white.opacity(0.4))
+                                .frame(width: dotSize * 0.4, height: dotSize * 0.4)
+                                .offset(x: -dotSize * 0.2, y: -dotSize * 0.2)
+                        )
                         .position(x: spacing, y: center.y)
                     Circle()
-                        .fill(Color.white)
+                        .fill(
+                            RadialGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white,
+                                    Color.white.opacity(0.8)
+                                ]),
+                                center: .topLeading,
+                                startRadius: 0,
+                                endRadius: dotSize
+                            )
+                        )
                         .frame(width: dotSize, height: dotSize)
-                        .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.5), radius: 2, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 0)
+                        .overlay(
+                            Circle()
+                                .fill(Color.white.opacity(0.4))
+                                .frame(width: dotSize * 0.4, height: dotSize * 0.4)
+                                .offset(x: -dotSize * 0.2, y: -dotSize * 0.2)
+                        )
                         .position(x: spacing, y: geometry.size.height - spacing)
                     Circle()
-                        .fill(Color.white)
+                        .fill(
+                            RadialGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white,
+                                    Color.white.opacity(0.8)
+                                ]),
+                                center: .topLeading,
+                                startRadius: 0,
+                                endRadius: dotSize
+                            )
+                        )
                         .frame(width: dotSize, height: dotSize)
-                        .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.5), radius: 2, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 0)
+                        .overlay(
+                            Circle()
+                                .fill(Color.white.opacity(0.4))
+                                .frame(width: dotSize * 0.4, height: dotSize * 0.4)
+                                .offset(x: -dotSize * 0.2, y: -dotSize * 0.2)
+                        )
                         .position(x: geometry.size.width - spacing, y: spacing)
                     Circle()
-                        .fill(Color.white)
+                        .fill(
+                            RadialGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white,
+                                    Color.white.opacity(0.8)
+                                ]),
+                                center: .topLeading,
+                                startRadius: 0,
+                                endRadius: dotSize
+                            )
+                        )
                         .frame(width: dotSize, height: dotSize)
-                        .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.5), radius: 2, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 0)
+                        .overlay(
+                            Circle()
+                                .fill(Color.white.opacity(0.4))
+                                .frame(width: dotSize * 0.4, height: dotSize * 0.4)
+                                .offset(x: -dotSize * 0.2, y: -dotSize * 0.2)
+                        )
                         .position(x: geometry.size.width - spacing, y: center.y)
                     Circle()
-                        .fill(Color.white)
+                        .fill(
+                            RadialGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white,
+                                    Color.white.opacity(0.8)
+                                ]),
+                                center: .topLeading,
+                                startRadius: 0,
+                                endRadius: dotSize
+                            )
+                        )
                         .frame(width: dotSize, height: dotSize)
-                        .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.5), radius: 2, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 0)
+                        .overlay(
+                            Circle()
+                                .fill(Color.white.opacity(0.4))
+                                .frame(width: dotSize * 0.4, height: dotSize * 0.4)
+                                .offset(x: -dotSize * 0.2, y: -dotSize * 0.2)
+                        )
                         .position(x: geometry.size.width - spacing, y: geometry.size.height - spacing)
                     
                 default:
@@ -267,7 +746,7 @@ struct DiceSimpleView: View {
 // MARK: - Custom Shapes
 
 /// Type-erased wrapper for Shape protocol
-struct AnyShape: Shape {
+struct AnyShape: Shape, @unchecked Sendable {
     private let _path: (CGRect) -> Path
     
     init<S: Shape>(_ shape: S) {

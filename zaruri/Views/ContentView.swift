@@ -32,10 +32,16 @@ struct ContentView: View {
                 .edgesIgnoringSafeArea(.all)
                 
                 VStack(spacing: 0) {
-                    // Turn-based player banner
-                    if viewModel.isTurnBasedMode, let currentPlayer = viewModel.currentPlayerName {
-                        playerBanner(playerName: currentPlayer)
-                            .padding(.top, 8)
+                    // Turn-based: list (full timer strip or compact list) + player banner
+                    if viewModel.isTurnBasedMode, !viewModel.gameState.turnBasedPlayers.isEmpty {
+                        if viewModel.settings.showTurnBasedTimerValue {
+                            turnBasedTimerStrip
+                                .padding(.top, 8)
+                        } else if viewModel.settings.showTurnBasedDiceValue {
+                            // Joc cu zaruri fără timer: listă compactă ca să vezi cine urmează
+                            turnBasedPlayerListCompact
+                                .padding(.top, 8)
+                        }
                     }
                     
                     // Game mode banner
@@ -52,12 +58,16 @@ struct ContentView: View {
                     
                     Spacer()
                     
-                    // Dice display area - centered
-                    diceDisplayArea
-                        .padding(.horizontal, isIPad ? 40 : 20)
+                    // Dice display area - centered (hidden in turn-based if "zaruri" disabled)
+                    let currentMode = GameMode(rawValue: viewModel.settings.selectedGameMode) ?? .free
+                    let showDiceArea = currentMode != .turnBased || viewModel.settings.showTurnBasedDiceValue
+                    if showDiceArea {
+                        diceDisplayArea
+                            .padding(.horizontal, isIPad ? 40 : 20)
+                    }
                     
-                    // Total display (if more than 1 dice and enabled)
-                    if viewModel.numberOfDice > 1 && viewModel.settings.showTotalValue {
+                    // Total display (if more than 1 dice and enabled, and not coin flip mode)
+                    if viewModel.numberOfDice > 1 && viewModel.settings.showTotalValue && currentMode != .coinFlip {
                         totalDisplay
                             .padding(.top, isIPad ? 40 : 20)
                     }
@@ -75,15 +85,37 @@ struct ContentView: View {
                 if viewModel.dices.isEmpty {
                     viewModel.setupDices()
                 }
+                if viewModel.isTurnBasedMode, !viewModel.gameState.turnBasedPlayers.isEmpty, viewModel.settings.showTurnBasedTimerValue {
+                    viewModel.startTurnBasedTimer()
+                }
             }
-            .navigationBarTitle("ZARURI")
-            .navigationBarItems(trailing:
-                HStack(spacing: 12) {
+            .onDisappear {
+                if viewModel.isTurnBasedMode {
+                    viewModel.stopTurnBasedTimer()
+                }
+            }
+            .alert(isPresented: $viewModel.showTimeUpAlert) {
+                Alert(
+                    title: Text("Timp expirat"),
+                    message: Text(viewModel.timeUpPlayerName.map { "Timpul s-a terminat pentru \($0)." } ?? "Timpul s-a terminat."),
+                    dismissButton: .default(Text("OK")) {
+                        viewModel.showTimeUpAlert = false
+                        viewModel.timeUpPlayerName = nil
+                    }
+                )
+            }
+            .navigationBarTitle("")
+            .navigationBarItems(
+                leading: viewModel.isTurnBasedMode && viewModel.settings.showTurnBasedTimerValue
+                    ? Button(action: { viewModel.toggleTurnBasedTimerPaused() }) {
+                        Image(systemName: viewModel.gameState.isTurnBasedTimerPaused ? "play.circle.fill" : "pause.circle.fill")
+                            .font(.system(size: 22))
+                            .foregroundColor(viewModel.gameState.isTurnBasedTimerPaused ? .green : .orange)
+                    }
+                    : nil,
+                trailing: HStack(spacing: 12) {
                     NavigationLink(destination: SettingsView(viewModel: viewModel)) {
                         Image(systemName: "gear")
-                    }
-                    NavigationLink(destination: HistoryView(viewModel: viewModel)) {
-                        Image(systemName: "clock")
                     }
                     NavigationLink(destination: StatisticsView(viewModel: viewModel)) {
                         Image(systemName: "chart.bar")
@@ -103,6 +135,7 @@ struct ContentView: View {
         GeometryReader { geometry in
             let availableWidth = geometry.size.width
             let availableHeight = geometry.size.height
+            let currentMode = GameMode(rawValue: viewModel.settings.selectedGameMode) ?? .free
             let count = viewModel.numberOfDice
             
             // Calculate layout based on number of dice
@@ -138,76 +171,96 @@ struct ContentView: View {
             let maxHeightForDice = (availableHeight - CGFloat(rows - 1) * verticalSpacing) / CGFloat(rows)
             let calculatedSize = min(maxWidthForDice, maxHeightForDice, diceSize)
             
-            VStack(spacing: verticalSpacing) {
-                if viewModel.dices.isEmpty {
-                    // Show placeholder while loading
-                    Text("Se încarcă...")
-                        .foregroundColor(.secondary)
-                        .padding()
-                } else {
-                    ForEach(0..<rows, id: \.self) { row in
-                        // Calculate items in this row
-                        let itemsInRow: Int = {
-                            switch count {
-                            case 1:
-                                return 1
-                            case 2:
-                                return 2
-                            case 3:
-                                return 3
-                            case 4:
-                                return 2
-                            case 5:
-                                return row == 0 ? 3 : 2
-                            case 6:
-                                return 3
-                            default:
-                                return columns
-                            }
-                        }()
-                        
-                        // Calculate starting index for this row
-                        let startIndex: Int = {
-                            switch count {
-                            case 1, 2, 3:
-                                return row * columns
-                            case 4:
-                                return row * 2
-                            case 5:
-                                return row == 0 ? 0 : 3
-                            case 6:
-                                return row * 3
-                            default:
-                                return row * columns
-                            }
-                        }()
-                        
-                        HStack(alignment: .center, spacing: horizontalSpacing) {
-                            // Always add spacers to center the row
-                            Spacer()
-                            
-                            HStack(spacing: horizontalSpacing) {
-                                ForEach(0..<itemsInRow, id: \.self) { col in
-                                    let index = startIndex + col
-                                    if index < viewModel.dices.count {
-                                        DiceSimpleView(
-                                            dice: viewModel.dices[index],
-                                            size: calculatedSize
-                                        )
-                                    }
-                                }
-                            }
-                            
-                            // Always add spacers to center the row
-                            Spacer()
-                        }
-                        .frame(maxWidth: .infinity)
+            // Check if coin flip mode or D2 (one die = coin)
+            let showCoin = currentMode == .coinFlip || (viewModel.settings.diceTypeValue == .d2 && count == 1)
+            Group {
+                if showCoin {
+                    // Display coin instead of dice (coin flip mode or Tip Zaruri D2)
+                    VStack {
+                        Spacer()
+                        CoinView(
+                            isHeads: viewModel.coinIsHeads,
+                            isRolling: viewModel.isRolling,
+                            size: min(availableWidth * 0.6, availableHeight * 0.6, isIPad ? 300 : 200)
+                        )
+                        Spacer()
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    // Display dice normally
+                    VStack(spacing: verticalSpacing) {
+                        if viewModel.dices.isEmpty {
+                            // Show placeholder while loading
+                            Text("Se încarcă...")
+                                .foregroundColor(.secondary)
+                                .padding()
+                        } else {
+                            ForEach(0..<rows, id: \.self) { row in
+                                // Calculate items in this row
+                                let itemsInRow: Int = {
+                                    switch count {
+                                    case 1:
+                                        return 1
+                                    case 2:
+                                        return 2
+                                    case 3:
+                                        return 3
+                                    case 4:
+                                        return 2
+                                    case 5:
+                                        return row == 0 ? 3 : 2
+                                    case 6:
+                                        return 3
+                                    default:
+                                        return columns
+                                    }
+                                }()
+                                
+                                // Calculate starting index for this row
+                                let startIndex: Int = {
+                                    switch count {
+                                    case 1, 2, 3:
+                                        return row * columns
+                                    case 4:
+                                        return row * 2
+                                    case 5:
+                                        return row == 0 ? 0 : 3
+                                    case 6:
+                                        return row * 3
+                                    default:
+                                        return row * columns
+                                    }
+                                }()
+                                
+                                HStack(alignment: .center, spacing: horizontalSpacing) {
+                                    // Always add spacers to center the row
+                                    Spacer()
+                                    
+                                    HStack(spacing: horizontalSpacing) {
+                                        ForEach(0..<itemsInRow, id: \.self) { col in
+                                            let index = startIndex + col
+                                            if index < viewModel.dices.count {
+                                                DiceSimpleView(
+                                                    dice: viewModel.dices[index],
+                                                    size: calculatedSize
+                                                )
+                                            }
+                                        }
+                                    }
+                                    
+                                    // Always add spacers to center the row
+                                    Spacer()
+                                }
+                                .frame(maxWidth: .infinity)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(maxHeight: isIPad ? 600 : 400)
+        .background(Color.clear) // Ensure transparent background
     }
     
     // MARK: - Total Display
@@ -224,23 +277,204 @@ struct ContentView: View {
         .padding(.top, 20)
     }
     
-    // MARK: - Player Banner
+    // MARK: - Turn-based Timer Strip
     
-    private func playerBanner(playerName: String) -> some View {
-        HStack {
-            Image(systemName: "person.fill")
-                .foregroundColor(.blue)
-            Text("Rândul: \(playerName)")
-                .font(.system(size: isIPad ? 20 : 17, weight: .semibold))
-                .foregroundColor(.blue)
+    private var turnBasedTimerStrip: some View {
+        VStack(spacing: 8) {
+            turnBasedPlayerListScrollContent
+                .frame(maxHeight: isIPad ? 280 : 220)
         }
         .padding(.horizontal, isIPad ? 20 : 16)
-        .padding(.vertical, isIPad ? 12 : 10)
+        .padding(.vertical, 10)
         .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.blue.opacity(0.1))
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color.blue.opacity(0.06))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.blue.opacity(0.2), lineWidth: 1)
         )
         .padding(.horizontal, isIPad ? 20 : 16)
+    }
+    
+    private var turnBasedPlayerListScrollContent: some View {
+        let currentIndex = viewModel.gameState.turnBasedCurrentPlayerIndex
+        let count = viewModel.gameState.turnBasedPlayers.count
+        return Group {
+            if #available(iOS 14.0, *) {
+                ScrollViewReader { proxy in
+                    ScrollView(.vertical, showsIndicators: true) {
+                        VStack(spacing: 6) {
+                            ForEach(0..<count, id: \.self) { index in
+                                turnBasedPlayerTimerRow(index: index)
+                                    .id(index)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .onAppear {
+                        proxy.scrollTo(currentIndex, anchor: .center)
+                    }
+                    .onChange(of: currentIndex) { newIndex in
+                        proxy.scrollTo(newIndex, anchor: .center)
+                    }
+                }
+            } else {
+                ScrollView(.vertical, showsIndicators: true) {
+                    VStack(spacing: 6) {
+                        ForEach(0..<count, id: \.self) { index in
+                            turnBasedPlayerTimerRow(index: index)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+        }
+    }
+    
+    private func turnBasedPlayerTimerRow(index: Int) -> some View {
+        let isCurrent = index == viewModel.gameState.turnBasedCurrentPlayerIndex
+        let name = viewModel.gameState.turnBasedPlayers[index]
+        let seconds = index < viewModel.gameState.turnBasedPlayerRemainingSeconds.count
+            ? viewModel.gameState.turnBasedPlayerRemainingSeconds[index]
+            : viewModel.gameState.turnBasedInitialSeconds
+        let lastRoll = viewModel.lastRollTotal(forPlayerName: name)
+        
+        return HStack(spacing: 10) {
+            if isCurrent {
+                Image(systemName: "arrow.right.circle.fill")
+                    .foregroundColor(.blue)
+                    .font(.system(size: 18))
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(name)
+                    .font(.system(size: isIPad ? 16 : 15, weight: isCurrent ? .semibold : .regular))
+                    .foregroundColor(isCurrent ? .blue : .primary)
+                    .lineLimit(1)
+                Text(formatTimer(seconds: seconds))
+                    .font(.system(size: isIPad ? 15 : 14, weight: .medium, design: .monospaced))
+                    .foregroundColor(seconds <= 60 ? .red : .secondary)
+            }
+            .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+            
+            if let total = lastRoll {
+                Text("\(total)")
+                    .font(.system(size: isIPad ? 15 : 14, weight: .bold))
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Capsule().fill(Color.secondary.opacity(0.15)))
+            }
+            
+            HStack(spacing: 8) {
+                Button(action: { viewModel.addTimeForPlayer(at: index, seconds: 30) }) {
+                    Text("+30s")
+                        .font(.system(size: isIPad ? 16 : 15, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(minWidth: 52, minHeight: 44)
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.blue))
+                }
+                .buttonStyle(PlainButtonStyle())
+                Button(action: { viewModel.addTimeForPlayer(at: index, seconds: 60) }) {
+                    Text("+1m")
+                        .font(.system(size: isIPad ? 16 : 15, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(minWidth: 52, minHeight: 44)
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.blue))
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(isCurrent ? Color.blue.opacity(0.15) : Color.secondary.opacity(0.08))
+        )
+    }
+    
+    private func formatTimer(seconds: Int) -> String {
+        let m = seconds / 60
+        let s = seconds % 60
+        return String(format: "%d:%02d", m, s)
+    }
+    
+    /// Listă compactă de jucători (fără timer) — pentru joc cu zaruri, să vezi cine urmează.
+    private var turnBasedPlayerListCompact: some View {
+        let currentIndex = viewModel.gameState.turnBasedCurrentPlayerIndex
+        let count = viewModel.gameState.turnBasedPlayers.count
+        return VStack(spacing: 6) {
+            if #available(iOS 14.0, *) {
+                ScrollViewReader { proxy in
+                    ScrollView(.vertical, showsIndicators: true) {
+                        VStack(spacing: 4) {
+                            ForEach(0..<count, id: \.self) { index in
+                                turnBasedPlayerNameRow(index: index)
+                                    .id(index)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .onAppear { proxy.scrollTo(currentIndex, anchor: .center) }
+                    .onChange(of: currentIndex) { newIndex in
+                        proxy.scrollTo(newIndex, anchor: .center)
+                    }
+                }
+            } else {
+                ScrollView(.vertical, showsIndicators: true) {
+                    VStack(spacing: 4) {
+                        ForEach(0..<count, id: \.self) { index in
+                            turnBasedPlayerNameRow(index: index)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+        }
+        .frame(maxHeight: isIPad ? 200 : 160)
+        .padding(.horizontal, isIPad ? 20 : 16)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color.blue.opacity(0.06))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.blue.opacity(0.2), lineWidth: 1)
+        )
+        .padding(.horizontal, isIPad ? 20 : 16)
+    }
+    
+    private func turnBasedPlayerNameRow(index: Int) -> some View {
+        let isCurrent = index == viewModel.gameState.turnBasedCurrentPlayerIndex
+        let name = viewModel.gameState.turnBasedPlayers[index]
+        let lastRoll = viewModel.lastRollTotal(forPlayerName: name)
+        return HStack(spacing: 10) {
+            if isCurrent {
+                Image(systemName: "arrow.right.circle.fill")
+                    .foregroundColor(.blue)
+                    .font(.system(size: 16))
+            }
+            Text(name)
+                .font(.system(size: isIPad ? 16 : 15, weight: isCurrent ? .semibold : .regular))
+                .foregroundColor(isCurrent ? .blue : .primary)
+                .lineLimit(1)
+            Spacer()
+            if let total = lastRoll {
+                Text("\(total)")
+                    .font(.system(size: isIPad ? 14 : 13, weight: .bold))
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Capsule().fill(Color.secondary.opacity(0.15)))
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(isCurrent ? Color.blue.opacity(0.15) : Color.secondary.opacity(0.08))
+        )
     }
     
     // MARK: - Game Mode Banner
@@ -267,12 +501,16 @@ struct ContentView: View {
                     Text("Maxim posibil: \(maxPossible)")
                         .font(.system(size: isIPad ? 14 : 12))
                         .foregroundColor(.secondary)
+                } else if currentMode == .coinFlip && !viewModel.isRolling {
+                    Text("Rezultat: \(viewModel.coinIsHeads ? "Cap" : "Pajură")")
+                        .font(.system(size: isIPad ? 14 : 12))
+                        .foregroundColor(.secondary)
                 }
             }
             
             Spacer()
             
-            // Progress display for sum and highest modes
+            // Right side: progress (sum/highest) or "Joacă: [name]" (turn-based)
             if currentMode == .sum {
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("\(viewModel.total) / \(viewModel.gameState.sumGameTarget)")
@@ -295,6 +533,15 @@ struct ContentView: View {
                             .font(.system(size: isIPad ? 12 : 10))
                             .foregroundColor(.secondary)
                     }
+                }
+            } else if currentMode == .turnBased, let currentPlayer = viewModel.currentPlayerName {
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("Joacă:")
+                        .font(.system(size: isIPad ? 12 : 11))
+                        .foregroundColor(.secondary)
+                    Text(currentPlayer)
+                        .font(.system(size: isIPad ? 18 : 16, weight: .bold))
+                        .foregroundColor(modeColor(for: .turnBased))
                 }
             }
         }
@@ -323,6 +570,8 @@ struct ContentView: View {
             return "arrow.up.circle.fill"
         case .turnBased:
             return "person.2.fill"
+        case .coinFlip:
+            return "bitcoinsign.circle.fill"
         }
     }
     
@@ -336,6 +585,8 @@ struct ContentView: View {
             return .purple
         case .turnBased:
             return .blue
+        case .coinFlip:
+            return .yellow
         }
     }
     
@@ -391,15 +642,21 @@ struct ContentView: View {
     // MARK: - Roll Button
     
     private var rollButton: some View {
-        Button(action: {
-            if viewModel.waitingForNextPlayer {
+        let currentMode = GameMode(rawValue: viewModel.settings.selectedGameMode) ?? .free
+        let turnBasedNoDice = currentMode == .turnBased && !viewModel.settings.showTurnBasedDiceValue
+        let showAdvanceButton = viewModel.waitingForNextPlayer || turnBasedNoDice
+        
+        return Button(action: {
+            if showAdvanceButton {
                 viewModel.advanceToNextPlayer()
+            } else if currentMode == .coinFlip {
+                viewModel.rollCoin()
             } else {
                 viewModel.rollDices()
             }
         }) {
             HStack {
-                if viewModel.waitingForNextPlayer {
+                if showAdvanceButton {
                     Image(systemName: "arrow.right.circle.fill")
                         .font(.system(size: isIPad ? 24 : 20))
                     if let nextPlayer = viewModel.nextPlayerName {
@@ -410,10 +667,17 @@ struct ContentView: View {
                             .font(.system(size: isIPad ? 24 : 20, weight: .semibold))
                     }
                 } else {
-                    Image(systemName: "dice.fill")
-                        .font(.system(size: isIPad ? 24 : 20))
-                    Text("Aruncă zarurile")
-                        .font(.system(size: isIPad ? 24 : 20, weight: .semibold))
+                    if currentMode == .coinFlip {
+                        Image(systemName: "bitcoinsign.circle.fill")
+                            .font(.system(size: isIPad ? 24 : 20))
+                        Text("Aruncă moneda")
+                            .font(.system(size: isIPad ? 24 : 20, weight: .semibold))
+                    } else {
+                        Image(systemName: "dice.fill")
+                            .font(.system(size: isIPad ? 24 : 20))
+                        Text("Aruncă zarurile")
+                            .font(.system(size: isIPad ? 24 : 20, weight: .semibold))
+                    }
                 }
             }
             .foregroundColor(.white)
@@ -421,7 +685,7 @@ struct ContentView: View {
             .padding(.vertical, isIPad ? 24 : 18)
             .background(
                 LinearGradient(
-                    colors: viewModel.waitingForNextPlayer ? [
+                    colors: showAdvanceButton ? [
                         Color.green,
                         Color.green.opacity(0.8)
                     ] : [
@@ -434,7 +698,7 @@ struct ContentView: View {
             )
             .cornerRadius(isIPad ? 30 : 25)
             .shadow(
-                color: viewModel.waitingForNextPlayer ? 
+                color: showAdvanceButton ? 
                     Color.green.opacity(0.3) : 
                     viewModel.settings.theme.primaryColor.opacity(0.3),
                 radius: isIPad ? 15 : 10,

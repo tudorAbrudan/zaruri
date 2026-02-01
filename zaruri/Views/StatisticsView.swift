@@ -8,10 +8,11 @@
 import SwiftUI
 import Combine
 
-/// Statistics view showing dice roll statistics
+/// Statistics (top) + History (bottom) on one page
 struct StatisticsView: View {
     @ObservedObject var viewModel: DiceViewModel
     @ObservedObject private var statisticsViewModel: StatisticsViewModel
+    @State private var searchText: String = ""
     
     init(viewModel: DiceViewModel) {
         self.viewModel = viewModel
@@ -23,25 +24,75 @@ struct StatisticsView: View {
         UIDevice.current.userInterfaceIdiom == .pad
     }
     
+    private var filteredHistory: [DiceRoll] {
+        if searchText.isEmpty {
+            return viewModel.history
+        }
+        return viewModel.history.filter { roll in
+            roll.formattedValues.localizedCaseInsensitiveContains(searchText) ||
+            String(roll.total).contains(searchText) ||
+            roll.formattedDate.localizedCaseInsensitiveContains(searchText) ||
+            (roll.playerName?.localizedCaseInsensitiveContains(searchText) ?? false)
+        }
+    }
+    
     var body: some View {
         ScrollView {
-            VStack(spacing: isIPad ? 30 : 20) {
-                // Overall statistics
+            VStack(alignment: .leading, spacing: isIPad ? 30 : 20) {
+                // Statistici (sus)
                 overallStatsCard
-                
-                // Value distribution
                 if !statisticsViewModel.valueDistribution.isEmpty {
                     distributionCard
+                }
+                
+                // Istoric (jos)
+                Text("Istoric")
+                    .font(.system(size: isIPad ? 22 : 17, weight: .bold))
+                    .padding(.top, isIPad ? 16 : 8)
+                
+                if !viewModel.history.isEmpty {
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(.secondary)
+                        TextField("Caută în istoric", text: $searchText)
+                    }
+                    .padding(8)
+                    .background(Color(UIColor.secondarySystemBackground))
+                    .cornerRadius(8)
+                }
+                
+                if viewModel.history.isEmpty {
+                    historyEmptyView
+                } else {
+                    VStack(spacing: 0) {
+                        ForEach(filteredHistory) { roll in
+                            HistoryRow(roll: roll)
+                            if roll.id != filteredHistory.last?.id {
+                                Divider()
+                                    .padding(.leading, 16)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 8)
+                    .background(Color(UIColor.secondarySystemBackground))
+                    .cornerRadius(isIPad ? 16 : 12)
                 }
             }
             .padding(isIPad ? 30 : 16)
             .frame(maxWidth: isIPad ? 800 : .infinity)
             .frame(maxWidth: .infinity)
         }
-        .navigationBarTitle("Statistici", displayMode: .inline)
+        .navigationBarTitle("Statistici și istoric", displayMode: .inline)
         .navigationBarItems(trailing:
-            Button("Resetează") {
-                statisticsViewModel.resetStatistics()
+            HStack(spacing: 12) {
+                Button("Resetează") {
+                    statisticsViewModel.resetStatistics()
+                }
+                if !viewModel.history.isEmpty {
+                    Button("Șterge istoric") {
+                        viewModel.clearHistory()
+                    }
+                }
             }
         )
         .onAppear {
@@ -50,6 +101,24 @@ struct StatisticsView: View {
         .onReceive(viewModel.$history.dropFirst()) { _ in
             statisticsViewModel.loadStatisticsFromHistory(viewModel.history)
         }
+    }
+    
+    private var historyEmptyView: some View {
+        VStack(spacing: isIPad ? 24 : 16) {
+            Image(systemName: "clock")
+                .font(.system(size: isIPad ? 60 : 48))
+                .foregroundColor(.secondary)
+            Text("Nu există istoric")
+                .font(.system(size: isIPad ? 22 : 18, weight: .semibold))
+                .foregroundColor(.secondary)
+            Text("Aruncă zarurile pentru a începe")
+                .font(isIPad ? .subheadline : .caption)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, isIPad ? 40 : 28)
+        .background(Color(UIColor.secondarySystemBackground))
+        .cornerRadius(isIPad ? 16 : 12)
     }
     
     // MARK: - Overall Stats Card

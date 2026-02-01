@@ -59,6 +59,8 @@ struct GameModesView: View {
                     highestModeView
                 case .turnBased:
                     turnBasedModeView
+                case .coinFlip:
+                    coinFlipModeView
                 }
             }
         }
@@ -312,6 +314,43 @@ struct GameModesView: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
             
+            // Optional: use timer
+            Toggle(isOn: Binding(
+                get: { viewModel.settings.showTurnBasedTimerValue },
+                set: { viewModel.settings.turnBasedShowTimer = $0; viewModel.saveSettings() }
+            )) {
+                Text("Folosește timer")
+                    .font(.subheadline)
+            }
+            
+            // Optional: use dice
+            Toggle(isOn: Binding(
+                get: { viewModel.settings.showTurnBasedDiceValue },
+                set: { viewModel.settings.turnBasedShowDice = $0; viewModel.saveSettings() }
+            )) {
+                Text("Folosește zaruri")
+                    .font(.subheadline)
+            }
+            
+            // Initial time per player (only when timer is on)
+            if viewModel.settings.showTurnBasedTimerValue {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Timp per jucător (la început)")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    HStack {
+                        Text("\(viewModel.gameState.turnBasedInitialSeconds / 60) min")
+                            .font(.body)
+                            .fontWeight(.medium)
+                        Stepper("", value: Binding(
+                            get: { viewModel.gameState.turnBasedInitialSeconds / 60 },
+                            set: { viewModel.setTurnBasedInitialSeconds($0 * 60) }
+                        ), in: 1...60)
+                            .labelsHidden()
+                    }
+                }
+            }
+            
             // Current player indicator
             if let currentPlayer = viewModel.currentPlayerName {
                 HStack {
@@ -409,18 +448,60 @@ struct GameModesView: View {
             
             Divider()
             
-            // Reset turn button
+            // Reset turn and timers
             if !viewModel.gameState.turnBasedPlayers.isEmpty {
-                Button(action: {
-                    viewModel.resetGameState()
-                }) {
-                    HStack {
-                        Image(systemName: "arrow.counterclockwise")
-                        Text("Resetează rândul")
+                HStack(spacing: 16) {
+                    Button(action: {
+                        viewModel.resetGameState()
+                    }) {
+                        HStack {
+                            Image(systemName: "arrow.counterclockwise")
+                            Text("Resetează rândul")
+                        }
+                        .font(.subheadline)
+                        .foregroundColor(.blue)
                     }
-                    .font(.subheadline)
-                    .foregroundColor(.blue)
+                    if viewModel.settings.showTurnBasedTimerValue {
+                        Button(action: {
+                            viewModel.resetTurnBasedTimers()
+                        }) {
+                            HStack {
+                                Image(systemName: "clock.arrow.circlepath")
+                                Text("Resetează timere")
+                            }
+                            .font(.subheadline)
+                            .foregroundColor(.blue)
+                        }
+                    }
                 }
+            }
+        }
+    }
+    
+    // MARK: - Coin Flip Mode
+    
+    private var coinFlipModeView: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Aruncă cu banul")
+                .font(.headline)
+            
+            Text("Aruncă moneda pentru Cap sau Pajură. Moneda se va roti și va arăta rezultatul.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            Divider()
+            
+            // Current result display
+            if !viewModel.isRolling {
+                HStack {
+                    Image(systemName: viewModel.coinIsHeads ? "face.smiling" : "star.fill")
+                        .foregroundColor(viewModel.coinIsHeads ? .green : .blue)
+                    Text("Rezultat: \(viewModel.coinIsHeads ? "Cap" : "Pajură")")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(viewModel.coinIsHeads ? .green : .blue)
+                }
+                .padding(.vertical, 8)
             }
         }
     }

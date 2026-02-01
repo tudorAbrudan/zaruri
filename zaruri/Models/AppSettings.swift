@@ -19,6 +19,10 @@ struct AppSettings: Codable, Equatable {
     var selectedGameMode: String  // Store as String for Codable
     var showTotal: Bool?  // Show/hide total on main screen (optional for backward compatibility)
     var diceType: DiceType?  // Dice type (optional for backward compatibility)
+    /// Show timer strip in "Cu jucători" mode (optional: some games don't use timer).
+    var turnBasedShowTimer: Bool?
+    /// Show dice area in "Cu jucători" mode (optional: some timed games don't use dice).
+    var turnBasedShowDice: Bool?
     
     init() {
         numberOfDice = 2
@@ -30,6 +34,8 @@ struct AppSettings: Codable, Equatable {
         selectedGameMode = GameMode.free.rawValue
         showTotal = true
         diceType = .d6  // Default to d6
+        turnBasedShowTimer = true
+        turnBasedShowDice = true
     }
     
     // Computed property for easy access
@@ -40,6 +46,14 @@ struct AppSettings: Codable, Equatable {
     // Computed property for easy access to dice type
     var diceTypeValue: DiceType {
         return diceType ?? .d6  // Default to d6 if not set
+    }
+    
+    var showTurnBasedTimerValue: Bool {
+        return turnBasedShowTimer ?? true
+    }
+    
+    var showTurnBasedDiceValue: Bool {
+        return turnBasedShowDice ?? true
     }
 }
 

@@ -76,6 +76,16 @@ class UserDefaultsManager {
             settings.diceType = .d6  // Default to d6
         }
         
+        if settings.turnBasedShowTimer == nil {
+            settings.turnBasedShowTimer = true
+        }
+        if settings.turnBasedShowDice == nil {
+            settings.turnBasedShowDice = true
+        }
+        
+        // Note: use3DDice and animation3DType are ignored (3D removed)
+        // They may exist in old settings but won't cause errors
+        
         return settings
     }
     

@@ -9,6 +9,8 @@ import Foundation
 
 /// Available dice types
 enum DiceType: String, Codable, CaseIterable {
+    case d2 = "d2"
+    case d3 = "d3"
     case d4 = "d4"
     case d6 = "d6"
     case d8 = "d8"
@@ -18,6 +20,8 @@ enum DiceType: String, Codable, CaseIterable {
     
     var maxValue: Int {
         switch self {
+        case .d2: return 2
+        case .d3: return 3
         case .d4: return 4
         case .d6: return 6
         case .d8: return 8

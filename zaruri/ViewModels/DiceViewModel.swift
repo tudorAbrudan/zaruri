@@ -21,10 +21,15 @@ class DiceViewModel: ObservableObject {
     @Published var gameState: GameState
     @Published var waitingForNextPlayer: Bool = false
     @Published var showTargetReachedAlert: Bool = false
+    @Published var coinIsHeads: Bool = true  // true = Cap (50 BANI), false = Pajură (Stema)
+    /// When true, show alert that a player's time ran out.
+    @Published var showTimeUpAlert: Bool = false
+    @Published var timeUpPlayerName: String? = nil
     
     // MARK: - Private Properties
     
     private let hapticManager: HapticFeedbackManager
+    private var turnBasedCountdownTimer: Timer?
     private let soundManager: SoundManager
     private let userDefaultsManager: UserDefaultsManager
     
@@ -66,6 +71,9 @@ class DiceViewModel: ObservableObject {
     func setupDices() {
         let diceType = settings.diceTypeValue
         dices = (0..<numberOfDice).map { _ in Dice(type: diceType) }
+        if diceType == .d2 && numberOfDice == 1, let first = dices.first {
+            coinIsHeads = (first.value == 1)
+        }
         updateTotal()
     }
     
@@ -84,6 +92,57 @@ class DiceViewModel: ObservableObject {
     func rollDices() {
         guard !isRolling else { return }
         
+        let diceType = settings.diceTypeValue
+        let useCoinForD2 = (diceType == .d2 && numberOfDice == 1)
+        
+        isRolling = true
+        
+        // Play haptic feedback
+        if settings.hapticEnabled {
+            hapticManager.playRollStart()
+        }
+        
+        if settings.soundEnabled {
+            soundManager.playRollSound()
+        }
+        
+        if useCoinForD2 {
+            // D2 with one "die" = show coin animation
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                self.coinIsHeads = Bool.random()
+                if !self.dices.isEmpty {
+                    self.dices[0].value = self.coinIsHeads ? 1 : 2
+                    self.dices[0].stopRolling()
+                }
+                self.isRolling = false
+                self.updateTotal()
+                self.updateGameState(total: self.total)
+                if self.settings.keepHistory {
+                    let values = [self.coinIsHeads ? 1 : 2]
+                    self.saveToHistory(values: values, playerName: self.currentPlayerName)
+                }
+                if self.settings.hapticEnabled {
+                    self.hapticManager.playRollComplete()
+                }
+            }
+            return
+        }
+        
+        // Start rolling animation for all dice
+        for index in dices.indices {
+            dices[index].startRolling()
+        }
+        
+        // Roll after animation delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.performRoll()
+        }
+    }
+    
+    /// Roll the coin (for coin flip mode)
+    func rollCoin() {
+        guard !isRolling else { return }
+        
         isRolling = true
         
         // Play haptic feedback
@@ -96,14 +155,20 @@ class DiceViewModel: ObservableObject {
             soundManager.playRollSound()
         }
         
-        // Start rolling animation for all dice
-        for index in dices.indices {
-            dices[index].startRolling()
-        }
-        
-        // Roll after animation delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.performRoll()
+        // After animation, determine result (slower animation = longer delay)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            // Random: true = Cap, false = Pajură
+            self.coinIsHeads = Bool.random()
+            self.isRolling = false
+            
+            // Save to history
+            let values = [self.coinIsHeads ? 1 : 0]
+            self.saveToHistory(values: values, playerName: self.currentPlayerName)
+            
+            // Haptic feedback
+            if self.settings.hapticEnabled {
+                self.hapticManager.playRollComplete()
+            }
         }
     }
     
@@ -196,6 +261,9 @@ class DiceViewModel: ObservableObject {
                 waitingForNextPlayer = true
             }
             saveGameState()
+        case .coinFlip:
+            // No special tracking for coin flip mode
+            break
         }
     }
     
@@ -216,6 +284,9 @@ class DiceViewModel: ObservableObject {
         case .turnBased:
             gameState.resetTurnBased()
             waitingForNextPlayer = false
+        case .coinFlip:
+            // No special reset needed for coin flip mode
+            break
         }
         
         // Hide any active alerts
@@ -355,11 +426,101 @@ class DiceViewModel: ObservableObject {
     }
     
     func switchGameMode() {
-        // Reset waiting state when switching modes
+        // Reset waiting state and stop timer when switching modes
         let currentMode = GameMode(rawValue: settings.selectedGameMode) ?? .free
         if currentMode != .turnBased {
             waitingForNextPlayer = false
+            stopTurnBasedTimer()
         }
+    }
+    
+    // MARK: - Turn-based Timer
+    
+    /// Start the countdown timer when in turn-based mode. Call from ContentView.onAppear when isTurnBasedMode.
+    func startTurnBasedTimer() {
+        guard isTurnBasedMode, !gameState.turnBasedPlayers.isEmpty else { return }
+        stopTurnBasedTimer()
+        // Sync remaining seconds if count mismatch (e.g. loaded old state)
+        if gameState.turnBasedPlayerRemainingSeconds.count != gameState.turnBasedPlayers.count {
+            var newState = gameState
+            newState.setTurnBasedPlayers(gameState.turnBasedPlayers)
+            gameState = newState
+            saveGameState()
+        }
+        turnBasedCountdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            self?.turnBasedTimerTick()
+        }
+        RunLoop.main.add(turnBasedCountdownTimer!, forMode: .common)
+    }
+    
+    /// Stop the turn-based countdown timer.
+    func stopTurnBasedTimer() {
+        turnBasedCountdownTimer?.invalidate()
+        turnBasedCountdownTimer = nil
+    }
+    
+    private func turnBasedTimerTick() {
+        guard isTurnBasedMode,
+              !gameState.turnBasedPlayers.isEmpty,
+              !gameState.isTurnBasedTimerPaused,
+              gameState.turnBasedCurrentPlayerIndex >= 0,
+              gameState.turnBasedCurrentPlayerIndex < gameState.turnBasedPlayerRemainingSeconds.count else {
+            return
+        }
+        let idx = gameState.turnBasedCurrentPlayerIndex
+        guard gameState.turnBasedPlayerRemainingSeconds[idx] > 0 else { return }
+        gameState.turnBasedPlayerRemainingSeconds[idx] -= 1
+        if gameState.turnBasedPlayerRemainingSeconds[idx] == 0 {
+            let name = gameState.turnBasedPlayers[idx]
+            timeUpPlayerName = name
+            showTimeUpAlert = true
+            if settings.hapticEnabled {
+                hapticManager.playRollComplete()
+            }
+            if settings.soundEnabled {
+                soundManager.playRollSound()
+            }
+            advanceToNextPlayer()
+        }
+        saveGameState()
+    }
+    
+    /// Pause or resume all turn-based timers.
+    func toggleTurnBasedTimerPaused() {
+        guard isTurnBasedMode else { return }
+        gameState.isTurnBasedTimerPaused.toggle()
+        saveGameState()
+    }
+    
+    /// Add bonus time (seconds) for the player at the given index.
+    func addTimeForPlayer(at index: Int, seconds: Int) {
+        guard isTurnBasedMode,
+              index >= 0,
+              index < gameState.turnBasedPlayerRemainingSeconds.count else { return }
+        gameState.turnBasedPlayerRemainingSeconds[index] += seconds
+        saveGameState()
+    }
+    
+    /// Set initial time per player (used when adding new players and when resetting timers).
+    func setTurnBasedInitialSeconds(_ seconds: Int) {
+        guard isTurnBasedMode, seconds > 0 else { return }
+        gameState.turnBasedInitialSeconds = seconds
+        saveGameState()
+    }
+    
+    /// Reset all players' remaining time to the initial value.
+    func resetTurnBasedTimers() {
+        guard isTurnBasedMode else { return }
+        var newState = gameState
+        newState.resetTurnBasedTimers()
+        gameState = newState
+        saveGameState()
+    }
+    
+    /// Last roll total for a player (from history). Nil if no roll for that name.
+    func lastRollTotal(forPlayerName name: String?) -> Int? {
+        guard let name = name else { return nil }
+        return history.first { $0.playerName == name }.map { $0.total }
     }
 }
 

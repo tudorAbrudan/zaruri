@@ -13,6 +13,7 @@ enum GameMode: String, Codable, CaseIterable {
     case sum = "sum"
     case highest = "highest"
     case turnBased = "turnBased"
+    case coinFlip = "coinFlip"
     
     var displayName: String {
         switch self {
@@ -24,6 +25,8 @@ enum GameMode: String, Codable, CaseIterable {
             return "Valoare maximă"
         case .turnBased:
             return "Cu jucători"
+        case .coinFlip:
+            return "Aruncă cu banul"
         }
     }
     
@@ -37,6 +40,8 @@ enum GameMode: String, Codable, CaseIterable {
             return "Încearcă să obții cea mai mare valoare posibilă"
         case .turnBased:
             return "Joc cu mai mulți jucători pe rând"
+        case .coinFlip:
+            return "Aruncă moneda pentru Cap sau Pajură"
         }
     }
     
@@ -50,6 +55,8 @@ enum GameMode: String, Codable, CaseIterable {
             return 3
         case .turnBased:
             return 1  // Flexible
+        case .coinFlip:
+            return 1  // Nu folosim zaruri, doar monedă
         }
     }
 }
