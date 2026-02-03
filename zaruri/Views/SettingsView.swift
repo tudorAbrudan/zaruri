@@ -12,6 +12,7 @@ struct SettingsView: View {
     @ObservedObject var viewModel: DiceViewModel
     @Environment(\.presentationMode) var presentationMode
     @State private var showFeedbackSheet = false
+    @State private var showFeedbackWebView = false
     
     var body: some View {
         Form {
@@ -134,11 +135,26 @@ struct SettingsView: View {
                         Text("Trimite Feedback")
                     }
                 }
+                
+                Button(action: {
+                    showFeedbackWebView = true
+                }) {
+                    HStack {
+                        Image(systemName: "safari")
+                            .foregroundColor(.blue)
+                        Text("Sugestii, Bug-uri & Feedback")
+                    }
+                }
             }
         }
         .navigationBarTitle("Setări", displayMode: .inline)
         .sheet(isPresented: $showFeedbackSheet) {
             FeedbackView(feedbackManager: FeedbackManager.shared)
+        }
+        .sheet(isPresented: $showFeedbackWebView) {
+            if let url = URL(string: "https://zarul.userjot.com/") {
+                SafariView(url: url)
+            }
         }
         .onReceive(FeedbackManager.shared.$showFeedbackView) { show in
             showFeedbackSheet = show
