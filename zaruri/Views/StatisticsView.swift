@@ -6,18 +6,16 @@
 //
 
 import SwiftUI
-import Combine
 
 /// Statistics (top) + History (bottom) on one page
 struct StatisticsView: View {
-    @ObservedObject var viewModel: DiceViewModel
+    var viewModel: DiceViewModel
     @ObservedObject private var statisticsViewModel: StatisticsViewModel
     @State private var searchText: String = ""
-    
+
     init(viewModel: DiceViewModel) {
         self.viewModel = viewModel
-        let svm = StatisticsViewModel()
-        self._statisticsViewModel = ObservedObject(wrappedValue: svm)
+        self._statisticsViewModel = ObservedObject(wrappedValue: StatisticsViewModel())
     }
     
     private var isIPad: Bool {
@@ -98,7 +96,7 @@ struct StatisticsView: View {
         .onAppear {
             statisticsViewModel.loadStatisticsFromHistory(viewModel.history)
         }
-        .onReceive(viewModel.$history.dropFirst()) { _ in
+        .onChange(of: viewModel.history) { _, _ in
             statisticsViewModel.loadStatisticsFromHistory(viewModel.history)
         }
     }

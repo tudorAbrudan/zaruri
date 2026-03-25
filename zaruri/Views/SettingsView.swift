@@ -9,39 +9,17 @@ import SwiftUI
 
 /// Settings view for app configuration
 struct SettingsView: View {
-    @ObservedObject var viewModel: DiceViewModel
+    var viewModel: DiceViewModel
     @Environment(\.presentationMode) var presentationMode
     @State private var showFeedbackSheet = false
     @State private var showFeedbackWebView = false
+    @State private var showClearHistoryAlert = false
+    @State private var showResetSettingsAlert = false
     
     var body: some View {
         Form {
-            // Dice count section
-            Section(header: Text("Număr zaruri")) {
-                Stepper(
-                    "\(viewModel.numberOfDice) \(viewModel.numberOfDice == 1 ? "zar" : "zaruri")",
-                    value: Binding(
-                        get: { viewModel.numberOfDice },
-                        set: { viewModel.updateNumberOfDice($0) }
-                    ),
-                    in: 1...6
-                )
-            }
-            
-            // Dice type section
-            Section(header: Text("Tip zaruri")) {
-                Picker("Tip zaruri", selection: Binding(
-                    get: { viewModel.settings.diceTypeValue },
-                    set: { viewModel.updateDiceType($0) }
-                )) {
-                    ForEach(DiceType.allCases, id: \.self) { type in
-                        Text(type.displayName).tag(type)
-                    }
-                }
-            }
-            
             // Sound and haptic section
-            Section(header: Text("Feedback")) {
+            Section(header: Text("Sunet, vibrații & voce")) {
                 Toggle("Sunet", isOn: Binding(
                     get: { viewModel.settings.soundEnabled },
                     set: { _ in viewModel.toggleSound() }
@@ -113,19 +91,18 @@ struct SettingsView: View {
             // Data management section
             Section(header: Text("Date")) {
                 Button("Șterge istoricul") {
-                    viewModel.clearHistory()
+                    showClearHistoryAlert = true
                 }
                 .foregroundColor(.red)
                 
                 Button("Resetează setările") {
-                    viewModel.settings = AppSettings()
-                    viewModel.updateSettings(viewModel.settings)
+                    showResetSettingsAlert = true
                 }
                 .foregroundColor(.orange)
             }
             
             // Feedback section
-            Section(header: Text("Despre")) {
+            Section(header: Text("Despre aplicație")) {
                 Button(action: {
                     FeedbackManager.shared.showFeedback()
                 }) {
@@ -147,7 +124,7 @@ struct SettingsView: View {
                 }
             }
         }
-        .navigationBarTitle("Setări", displayMode: .inline)
+        .navigationBarTitle("Preferințe", displayMode: .inline)
         .sheet(isPresented: $showFeedbackSheet) {
             FeedbackView(feedbackManager: FeedbackManager.shared)
         }
@@ -158,6 +135,23 @@ struct SettingsView: View {
         }
         .onReceive(FeedbackManager.shared.$showFeedbackView) { show in
             showFeedbackSheet = show
+        }
+        .alert("Ștergi istoricul?", isPresented: $showClearHistoryAlert) {
+            Button("Anulează", role: .cancel) { }
+            Button("Șterge", role: .destructive) {
+                viewModel.clearHistory()
+            }
+        } message: {
+            Text("Această acțiune va șterge toate aruncările salvate. Nu poate fi anulată.")
+        }
+        .alert("Resetezi setările?", isPresented: $showResetSettingsAlert) {
+            Button("Anulează", role: .cancel) { }
+            Button("Resetează", role: .destructive) {
+                viewModel.settings = AppSettings()
+                viewModel.updateSettings(viewModel.settings)
+            }
+        } message: {
+            Text("Revenim la setările implicite pentru aplicație. Istoricul și statisticile nu sunt afectate.")
         }
     }
 }

@@ -14,7 +14,8 @@ struct GameState: Codable, Equatable {
         case highestValueBestScore, highestValueAttempts, highestValueMaxReached
         case turnBasedPlayers, turnBasedCurrentPlayerIndex
         case turnBasedPlayerRemainingSeconds, isTurnBasedTimerPaused, turnBasedInitialSeconds
-        case turnBasedPlayerIsOut
+        case turnBasedPlayerIsOut, turnBasedPlayerDiceTypes
+        case turnBasedPlayerUseCustom
     }
     
     // Sum Game state
@@ -39,6 +40,11 @@ struct GameState: Codable, Equatable {
     var turnBasedInitialSeconds: Int
     /// When true, player at same index is "out" this round; skipped when advancing turn until round reset.
     var turnBasedPlayerIsOut: [Bool]
+    /// Dice type rawValue per player (same order as turnBasedPlayers). Empty defaults to d6 for all.
+    var turnBasedPlayerDiceTypes: [String]
+    /// Whether each player uses the global custom dice configuration instead of the standard dice.
+    /// Same order as turnBasedPlayers. Empty defaults to `false` for all.
+    var turnBasedPlayerUseCustom: [Bool]
     
     init() {
         sumGameTarget = 10
@@ -56,6 +62,8 @@ struct GameState: Codable, Equatable {
         isTurnBasedTimerPaused = false
         turnBasedInitialSeconds = 30 * 60  // 30 minutes
         turnBasedPlayerIsOut = []
+        turnBasedPlayerDiceTypes = []
+        turnBasedPlayerUseCustom = []
     }
     
     // MARK: - Sum Game
@@ -161,6 +169,20 @@ struct GameState: Codable, Equatable {
         } else if turnBasedPlayerIsOut.count > players.count {
             turnBasedPlayerIsOut = Array(turnBasedPlayerIsOut.prefix(players.count))
         }
+        // Sync dice types array (default d6)
+        if turnBasedPlayerDiceTypes.count < players.count {
+            let toAdd = players.count - turnBasedPlayerDiceTypes.count
+            turnBasedPlayerDiceTypes.append(contentsOf: (0..<toAdd).map { _ in DiceType.d6.rawValue })
+        } else if turnBasedPlayerDiceTypes.count > players.count {
+            turnBasedPlayerDiceTypes = Array(turnBasedPlayerDiceTypes.prefix(players.count))
+        }
+        // Sync custom usage array (default false)
+        if turnBasedPlayerUseCustom.count < players.count {
+            let toAdd = players.count - turnBasedPlayerUseCustom.count
+            turnBasedPlayerUseCustom.append(contentsOf: (0..<toAdd).map { _ in false })
+        } else if turnBasedPlayerUseCustom.count > players.count {
+            turnBasedPlayerUseCustom = Array(turnBasedPlayerUseCustom.prefix(players.count))
+        }
     }
     
     /// Reset all players' remaining time to initial.
@@ -183,6 +205,8 @@ struct GameState: Codable, Equatable {
         isTurnBasedTimerPaused = try c.decodeIfPresent(Bool.self, forKey: .isTurnBasedTimerPaused) ?? false
         turnBasedInitialSeconds = try c.decodeIfPresent(Int.self, forKey: .turnBasedInitialSeconds) ?? (30 * 60)
         turnBasedPlayerIsOut = try c.decodeIfPresent([Bool].self, forKey: .turnBasedPlayerIsOut) ?? []
+        turnBasedPlayerDiceTypes = try c.decodeIfPresent([String].self, forKey: .turnBasedPlayerDiceTypes) ?? []
+        turnBasedPlayerUseCustom = try c.decodeIfPresent([Bool].self, forKey: .turnBasedPlayerUseCustom) ?? []
     }
     
     func encode(to encoder: Encoder) throws {
@@ -200,6 +224,8 @@ struct GameState: Codable, Equatable {
         try c.encode(isTurnBasedTimerPaused, forKey: .isTurnBasedTimerPaused)
         try c.encode(turnBasedInitialSeconds, forKey: .turnBasedInitialSeconds)
         try c.encode(turnBasedPlayerIsOut, forKey: .turnBasedPlayerIsOut)
+        try c.encode(turnBasedPlayerDiceTypes, forKey: .turnBasedPlayerDiceTypes)
+        try c.encode(turnBasedPlayerUseCustom, forKey: .turnBasedPlayerUseCustom)
     }
 }
 

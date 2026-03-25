@@ -6,13 +6,19 @@
 //
 
 import SwiftUI
+import UIKit
 
-// App structure for iOS 14+ (used by AppDelegate on iOS 14+)
-@available(iOS 14.0, *)
+@main
 struct zaruriApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onAppear {
+                    FeedbackManager.shared.checkForUpdate()
+                    ReviewRequestManager.shared.trackLaunch()
+                }
         }
     }
 }

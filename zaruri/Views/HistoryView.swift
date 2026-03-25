@@ -9,7 +9,7 @@ import SwiftUI
 
 /// History view showing past dice rolls
 struct HistoryView: View {
-    @ObservedObject var viewModel: DiceViewModel
+    var viewModel: DiceViewModel
     @State private var searchText: String = ""
     
     private var isIPad: Bool {

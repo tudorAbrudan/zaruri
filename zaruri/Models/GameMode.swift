@@ -14,7 +14,8 @@ enum GameMode: String, Codable, CaseIterable {
     case highest = "highest"
     case turnBased = "turnBased"
     case coinFlip = "coinFlip"
-    
+    case randomNumber = "randomNumber"
+
     var displayName: String {
         switch self {
         case .free:
@@ -27,9 +28,11 @@ enum GameMode: String, Codable, CaseIterable {
             return "Cu jucători"
         case .coinFlip:
             return "Aruncă cu banul"
+        case .randomNumber:
+            return "Număr aleatoriu"
         }
     }
-    
+
     var description: String {
         switch self {
         case .free:
@@ -42,9 +45,11 @@ enum GameMode: String, Codable, CaseIterable {
             return "Joc cu mai mulți jucători pe rând"
         case .coinFlip:
             return "Aruncă moneda pentru Cap sau Pajură"
+        case .randomNumber:
+            return "Generează un număr aleatoriu între un minim și un maxim"
         }
     }
-    
+
     var requiredDiceCount: Int {
         switch self {
         case .free:
@@ -57,6 +62,8 @@ enum GameMode: String, Codable, CaseIterable {
             return 1  // Flexible
         case .coinFlip:
             return 1  // Nu folosim zaruri, doar monedă
+        case .randomNumber:
+            return 1  // Nu folosim zaruri
         }
     }
 }
