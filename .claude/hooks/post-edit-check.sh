@@ -40,6 +40,12 @@ WEAK=$(grep -nE 'Task\s*\{|DispatchQueue\.' "$FILE" 2>/dev/null \
     | grep -v 'weak self' | grep -v '@MainActor' | head -2)
 [[ -n "$WEAK" ]] && ISSUES+=("🔗 Verifică [weak self] în closures async din $BASENAME")
 
+# 5. SwiftLint (if installed) — only errors and warnings for the edited file
+if command -v swiftlint >/dev/null 2>&1; then
+    LINT=$(swiftlint lint --quiet "$FILE" 2>/dev/null | grep -F "$FILE" | grep -E "(error|warning):" | head -5)
+    [[ -n "$LINT" ]] && ISSUES+=("🧹 SwiftLint: $(echo "$LINT" | sed 's|.*/||' | tr '\n' ' ')")
+fi
+
 if (( ${#ISSUES[@]} > 0 )); then
     echo ""
     echo "┌─ Verificări automate ($BASENAME) ─────────────"
