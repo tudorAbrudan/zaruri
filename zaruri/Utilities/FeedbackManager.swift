@@ -183,16 +183,42 @@ class FeedbackManager: ObservableObject {
     func getDeviceInfo() -> String {
         let device = UIDevice.current
         let model = device.model
+        let hardware = getHardwareIdentifier()
         let systemVersion = device.systemVersion
         let appVersion = getAppVersion()
         let buildNumber = getBuildNumber()
-        
+        let locale = Locale.current.identifier
+        let screen = UIScreen.main.bounds.size
+        let scale = UIScreen.main.scale
+        let screenString = String(
+            format: "%.0f × %.0f @ %.0fx",
+            screen.width, screen.height, scale
+        )
+
         return """
-        Model: \(model)
+        Model: \(model) (\(hardware))
         iOS Version: \(systemVersion)
-        App Version: \(appVersion)
-        Build: \(buildNumber)
+        App Version: \(appVersion) (build \(buildNumber))
+        Limbă: \(locale)
+        Ecran: \(screenString)
         """
+    }
+
+    /// Returns the hardware machine identifier (e.g. "iPhone16,2", "iPad14,3").
+    /// Falls back to the simulator model when running in the simulator.
+    private func getHardwareIdentifier() -> String {
+        #if targetEnvironment(simulator)
+        return ProcessInfo.processInfo.environment["SIMULATOR_MODEL_IDENTIFIER"] ?? "Simulator"
+        #else
+        var systemInfo = utsname()
+        uname(&systemInfo)
+        let machineMirror = Mirror(reflecting: systemInfo.machine)
+        let identifier = machineMirror.children.reduce(into: "") { result, element in
+            guard let value = element.value as? Int8, value != 0 else { return }
+            result.append(String(UnicodeScalar(UInt8(value))))
+        }
+        return identifier.isEmpty ? "Unknown" : identifier
+        #endif
     }
     
     /// Get app version
