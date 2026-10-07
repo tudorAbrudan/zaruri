@@ -149,6 +149,57 @@ final class DiceEntity: Entity {
         return bestValue
     }
 
+    // MARK: - Flat Landing
+
+    /// Local-space outward normals of every face (d3 is a cube with paired faces).
+    private func localFaceNormals() -> [SIMD3<Float>] {
+        if diceType == .d3 {
+            return [SIMD3(0, 1, 0), SIMD3(0, 0, 1), SIMD3(1, 0, 0),
+                    SIMD3(-1, 0, 0), SIMD3(0, 0, -1), SIMD3(0, -1, 0)]
+        }
+        return (1...diceType.maxValue).map { DiceFaceNormals.faceUpNormal(for: diceType, value: $0) }
+    }
+
+    /// World-space normal of the face pointing most directly at the floor.
+    private func lowestFaceNormal() -> SIMD3<Float>? {
+        var best: SIMD3<Float>?
+        var bestY: Float = 2
+        for normal in localFaceNormals() {
+            let world = orientation.act(normal)
+            if world.y < bestY {
+                bestY = world.y
+                best = world
+            }
+        }
+        return best
+    }
+
+    /// True when one face lies flat on the floor (within ~5°). A die balanced on an edge or corner is not flat.
+    var isLyingFlat: Bool {
+        guard let normal = lowestFaceNormal() else { return true }
+        return normal.y < -0.995
+    }
+
+    /// Physically tips a die balanced on an edge/corner toward the nearest flat face.
+    func tipTowardFlat(strength: Float) {
+        guard let normal = lowestFaceNormal() else { return }
+        let axis = simd_cross(normal, SIMD3<Float>(0, -1, 0))
+        let length = simd_length(axis)
+        guard length > 1e-4 else { return }
+        var motion = components[PhysicsMotionComponent.self] ?? PhysicsMotionComponent()
+        motion.angularVelocity = axis / length * strength
+        motion.linearVelocity.y += 0.6  // small hop so the die clears the edge it balances on
+        components.set(motion)
+    }
+
+    /// Last resort: aligns the nearest face with the floor and lets the die drop onto it.
+    func snapFlatAndDrop() {
+        guard let normal = lowestFaceNormal() else { return }
+        orientation = simd_quatf(from: normal, to: SIMD3<Float>(0, -1, 0)) * orientation
+        position.y += 0.05
+        components.set(PhysicsMotionComponent())
+    }
+
     // MARK: - Physics Setup
 
     private func setupPhysics() {

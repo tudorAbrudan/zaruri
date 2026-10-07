@@ -47,9 +47,10 @@ struct Dice3DView: View {
     @AppStorage("cameraHintDismissed") private var cameraHintDismissed: Bool = false
     @State private var showCameraHintBanner: Bool = false
 
-    // Forces RealityView to rebuild when dice type, count, custom config, or coin mode changes.
+    // Forces RealityView to rebuild when dice type, count, custom config, theme, or coin mode changes.
     private var sceneKey: String {
         var key = dice.map { $0.type.rawValue }.joined() + "\(dice.count)"
+        key += "_t:\(theme.rawValue)"
         if useCoinLookForD2 { key += "coin" }
         if let config = customConfig {
             key += config.geometryType.rawValue + config.colorHex
@@ -204,15 +205,15 @@ struct Dice3DView: View {
                     guard !isRolling else { return }
 
                     // Așteptăm până când toate zarurile s-au oprit complet (până la 15 verificări × 300ms).
-                    for _ in 0..<15 {
-                        guard !isRolling else { return }
-                        if diceAreResting() { break }
-                        try? await Task.sleep(for: .milliseconds(300))
-                    }
+                    await waitUntilResting(maxChecks: 15)
 
                     // Pauză suplimentară după ce vitezele sunt sub prag, pentru micro-rotații reziduale.
                     // Citim valorile DUPĂ această pauză, nu înainte, ca să corespundă cu fața vizibilă.
                     try? await Task.sleep(for: .milliseconds(500))
+                    guard !isRolling else { return }
+
+                    // Un zar nu poate rămâne în echilibru pe muchie/colț: îl răsturnăm pe o față.
+                    await settleDiceFlat()
                     guard !isRolling else { return }
 
                     var physicsValues: [Int] = []
@@ -405,11 +406,19 @@ struct Dice3DView: View {
             content.add(wall)
         }
 
-        addWall(size: SIMD3(0.1, 7, 7.4), position: SIMD3(-3.0, 0.2, -0.5))
-        addWall(size: SIMD3(0.1, 7, 7.4), position: SIMD3( 3.0, 0.2, -0.5))
-        addWall(size: SIMD3(7.4, 7, 0.1), position: SIMD3(0, 0.2, -3.2))
-        addWall(size: SIMD3(7.4, 7, 0.1), position: SIMD3(0, 0.2,  1.7))
-        addWall(size: SIMD3(7.4, 0.12, 7.4), position: SIMD3(0, 3.0, -0.5))
+        // Floor footprint is 8 × 6.4 centered at (0, _, -0.5) → X edges ±4, Z edges -3.7 / 2.7.
+        // Glass walls hug the floor's outer edge so the aquarium ends exactly at the corner,
+        // never protruding past the base.
+        let wt: Float = 0.1   // wall thickness
+        let wh: Float = 7     // wall height
+        // Side walls: span full floor depth, outer face flush with the floor's X edges.
+        addWall(size: SIMD3(wt, wh, 6.4), position: SIMD3(-4 + wt / 2, 0.2, -0.5))
+        addWall(size: SIMD3(wt, wh, 6.4), position: SIMD3( 4 - wt / 2, 0.2, -0.5))
+        // Front/back walls: fit between the side walls so corners meet cleanly without overlap.
+        addWall(size: SIMD3(8 - 2 * wt, wh, wt), position: SIMD3(0, 0.2, -3.7 + wt / 2))
+        addWall(size: SIMD3(8 - 2 * wt, wh, wt), position: SIMD3(0, 0.2,  2.7 - wt / 2))
+        // Ceiling matches the floor footprint exactly.
+        addWall(size: SIMD3(8, 0.12, 6.4), position: SIMD3(0, 3.0, -0.5))
     }
 
     // MARK: - Lighting
@@ -462,6 +471,35 @@ struct Dice3DView: View {
 
     private var sceneHeight: CGFloat {
         UIDevice.current.userInterfaceIdiom == .pad ? 580 : 400
+    }
+
+    private func waitUntilResting(maxChecks: Int) async {
+        for _ in 0..<maxChecks {
+            guard !isRolling else { return }
+            if diceAreResting() { return }
+            try? await Task.sleep(for: .milliseconds(300))
+        }
+    }
+
+    /// Ensures every die ends lying flat on a face. First tips tilted dice physically with growing
+    /// strength; on the last attempt aligns them exactly and lets them drop.
+    private func settleDiceFlat() async {
+        let attempts = 4
+        for attempt in 0..<attempts {
+            guard !isRolling else { return }
+            let tilted = diceEntities.filter { !$0.isLyingFlat }
+            if tilted.isEmpty { return }
+            for entity in tilted {
+                if attempt < attempts - 1 {
+                    entity.tipTowardFlat(strength: 2.5 + Float(attempt) * 1.5)
+                } else {
+                    entity.snapFlatAndDrop()
+                }
+            }
+            try? await Task.sleep(for: .milliseconds(900))
+            await waitUntilResting(maxChecks: 10)
+            try? await Task.sleep(for: .milliseconds(300))
+        }
     }
 
     /// Considerăm că zarurile s-au „liniștit” când atât viteza liniară cât și cea
